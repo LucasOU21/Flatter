@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Fondo para el precio -->
+    <drawable android:name="bg_price_tag">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/colorAccent" />
+            <corners android:radius="8dp" />
+        </shape>
+    </drawable>
+
+    <!-- Fondo para el indicador de puntos -->
+    <drawable android:name="bg_indicator">
+        <shape android:shape="rectangle">
+            <solid android:color="#80000000" />
+            <corners android:radius="16dp" />
+        </shape>
+    </drawable>
+
+    <!-- Punto seleccionado -->
+    <drawable android:name="dot_selected">
+        <shape android:shape="oval">
+            <solid android:color="@color/white" />
+            <size android:width="8dp" android:height="8dp" />
+        </shape>
+    </drawable>
+
+    <!-- Punto no seleccionado -->
+    <drawable android:name="dot_unselected">
+        <shape android:shape="oval">
+            <solid android:color="#80FFFFFF" />
+            <size android:width="8dp" android:height="8dp" />
+        </shape>
+    </drawable>
+</resources>

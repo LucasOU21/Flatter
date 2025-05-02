@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Flatter</string>
+    <string name="app_logo">Logo de Flatter</string>
+    <string name="rechazar">Rechazar</string>
+    <string name="aceptar">Aceptar</string>
+    <string name="imagen_del_listado">Imagen del listado</string>
+    <string name="precio_por_mes">%1$s/mes</string>
+    <string name="area_metros">%1$d m²</string>
+    <string name="publicado_por">Publicado por: %1$s</string>
+    <string name="publicado_fecha">Publicado: %1$s</string>
+
+    <plurals name="bedroom_count">
+        <item quantity="one">%d hab.</item>
+        <item quantity="other">%d hab.</item>
+    </plurals>
+
+    <plurals name="bathroom_count">
+        <item quantity="one">%d baño</item>
+        <item quantity="other">%d baños</item>
+    </plurals>
+
+</resources>

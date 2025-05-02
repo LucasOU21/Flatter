@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "674672730891",
+    "project_id": "flatter-3ea2f",
+    "storage_bucket": "flatter-3ea2f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:674672730891:android:751188cbae8d1fc62b780e",
+        "android_client_info": {
+          "package_name": "com.example.flatter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTHG85xnKfeQsKj1Fj0YOlJuul0Rh9ew4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
