@@ -7,11 +7,9 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.TextView
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
 import com.example.flatter.databinding.ItemListingBinding
-import de.hdodenhof.circleimageview.CircleImageView
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -65,8 +63,8 @@ class ListingArrayAdapter(
         // Cargar imagen de perfil del usuario
         Glide.with(context)
             .load(listing.userProfileImageUrl)
-            .placeholder(R.drawable.default_profile)
-            .error(R.drawable.default_profile)
+            .placeholder(R.drawable.default_profile_img)
+            .error(R.drawable.default_profile_img)
             .into(binding.ivUserProfile)
 
         // Configurar carrusel de imágenes

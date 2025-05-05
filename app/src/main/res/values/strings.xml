@@ -33,4 +33,7 @@
     <string name="save_changes">Guardar cambios</string>
     <string name="no_chats_yet">Aún no tienes chats</string>
 
+
+    <string name="no_listings_available">No hay listados disponibles</string>
+
 </resources>

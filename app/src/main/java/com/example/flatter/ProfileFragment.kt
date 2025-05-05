@@ -7,12 +7,16 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import com.bumptech.glide.Glide
 import com.example.flatter.databinding.FragmentProfileBinding
 
 class ProfileFragment : Fragment() {
 
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
+
+    private lateinit var viewModel: UserViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -26,30 +30,62 @@ class ProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Cargar datos de perfil (en una implementación real, obtendríamos estos datos desde Firebase)
-        cargarDatosPerfil()
+        // Inicializar ViewModel
+        viewModel = ViewModelProvider(requireActivity())[UserViewModel::class.java]
 
-        // Configurar listener para botón de guardar
+        // Configurar listeners
+        configurarListeners()
+
+        // Observar datos del perfil
+        observarDatos()
+
+        // Cargar datos de perfil
+        viewModel.cargarPerfilUsuario()
+    }
+
+    private fun configurarListeners() {
+        // Botón de guardar cambios
         binding.btnSaveProfile.setOnClickListener {
             guardarPerfil()
         }
 
-        // Configurar listener para cambiar foto
+        // Botón de cambiar foto
         binding.tvEditPhoto.setOnClickListener {
             // Aquí implementaríamos la lógica para seleccionar una foto de la galería
             // o tomar una foto con la cámara
-            Toast.makeText(context, "Función no implementada", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Función de cambiar foto no implementada", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun cargarDatosPerfil() {
-        // En una implementación real, obtendríamos estos datos desde Firebase
-        // Por ahora, usaremos datos de ejemplo
-        binding.etFullName.setText("Ana García")
-        binding.etEmail.setText("ana.garcia@ejemplo.com")
-        binding.etPhone.setText("+34 612 345 678")
-        binding.etBio.setText("Estudiante de arquitectura, 25 años. Me gusta el cine, la música y viajar.")
-        binding.etMaxBudget.setText("800")
+    private fun observarDatos() {
+        viewModel.userProfile.observe(viewLifecycleOwner) { perfil ->
+            mostrarDatosPerfil(perfil)
+        }
+
+        viewModel.isLoading.observe(viewLifecycleOwner) { estaCargando ->
+            // Aquí podríamos mostrar un indicador de carga
+        }
+
+        viewModel.error.observe(viewLifecycleOwner) { error ->
+            if (!error.isNullOrEmpty()) {
+                Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun mostrarDatosPerfil(perfil: UserModel) {
+        binding.etFullName.setText(perfil.fullName)
+        binding.etEmail.setText(perfil.email)
+        binding.etPhone.setText(perfil.phone)
+        binding.etBio.setText(perfil.bio)
+        binding.etMaxBudget.setText(perfil.maxBudget.toString())
+
+        // Cargar imagen de perfil
+        Glide.with(requireContext())
+            .load(perfil.profileImageUrl)
+            .placeholder(R.drawable.default_profile_img)
+            .error(R.drawable.default_profile_img)
+            .into(binding.ivProfilePicture)
     }
 
     private fun guardarPerfil() {
@@ -58,7 +94,7 @@ class ProfileFragment : Fragment() {
         val email = binding.etEmail.text.toString().trim()
         val telefono = binding.etPhone.text.toString().trim()
         val bio = binding.etBio.text.toString().trim()
-        val presupuesto = binding.etMaxBudget.text.toString().trim()
+        val presupuestoStr = binding.etMaxBudget.text.toString().trim()
 
         // Verificar que los campos obligatorios no estén vacíos
         if (nombre.isEmpty() || email.isEmpty()) {
@@ -66,9 +102,26 @@ class ProfileFragment : Fragment() {
             return
         }
 
-        // En una implementación real, guardaríamos estos datos en Firebase
-        // Por ahora, solo mostraremos un mensaje de éxito
-        Toast.makeText(context, "Perfil guardado correctamente", Toast.LENGTH_SHORT).show()
+        // Convertir presupuesto a número
+        val presupuesto = try {
+            presupuestoStr.toDouble()
+        } catch (e: NumberFormatException) {
+            Toast.makeText(context, "Por favor, ingresa un presupuesto válido", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Obtener perfil actual y actualizarlo
+        val perfilActual = viewModel.userProfile.value ?: return
+        val perfilActualizado = perfilActual.copy(
+            fullName = nombre,
+            email = email,
+            phone = telefono,
+            bio = bio,
+            maxBudget = presupuesto
+        )
+
+        // Guardar perfil actualizado
+        viewModel.actualizarPerfil(perfilActualizado)
     }
 
     override fun onDestroyView() {
