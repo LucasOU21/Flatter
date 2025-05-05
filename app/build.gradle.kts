@@ -83,7 +83,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
     //cardStackView (para el efecto tipo Tinder)
-    implementation("com.lorentzos.swipecards:library:1.0.9")
+    implementation("com.lorentzos.swipecards:library:1.0.9@aar")
 
     //glide para carga de imágenes
     implementation (libs.glide)

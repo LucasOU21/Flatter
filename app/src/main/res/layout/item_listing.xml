@@ -108,10 +108,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:drawableStart="@drawable/ic_location"
                     android:drawablePadding="4dp"
                     android:textColor="@color/gray_dark"
                     android:textSize="14sp"
+                    app:drawableStartCompat="@drawable/ic_location"
                     tools:text="Eixample, Barcelona" />
 
                 <LinearLayout
@@ -125,10 +125,10 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="16dp"
-                        android:drawableStart="@drawable/ic_bed"
                         android:drawablePadding="4dp"
                         android:textColor="@color/gray_dark"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_bed"
                         tools:text="3 hab." />
 
                     <TextView
@@ -136,20 +136,20 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="16dp"
-                        android:drawableStart="@drawable/ic_bathroom"
                         android:drawablePadding="4dp"
                         android:textColor="@color/gray_dark"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_bathroom"
                         tools:text="2 baños" />
 
                     <TextView
                         android:id="@+id/tvArea"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:drawableStart="@drawable/ic_area"
                         android:drawablePadding="4dp"
                         android:textColor="@color/gray_dark"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_area"
                         tools:text="90 m²" />
                 </LinearLayout>
 
