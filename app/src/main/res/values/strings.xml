@@ -19,7 +19,7 @@
         <item quantity="other">%d baños</item>
     </plurals>
 
-   //PERFIL
+    //PERFIL
     <string name="profile">Perfil</string>
     <string name="chats">Chats</string>
     <string name="home">Inicio</string>

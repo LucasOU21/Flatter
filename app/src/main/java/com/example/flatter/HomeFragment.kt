@@ -148,8 +148,8 @@ class HomeFragment : Fragment() {
         // Cargar imagen de perfil del usuario
         Glide.with(requireContext())
             .load(listing.userProfileImageUrl)
-            .placeholder(R.drawable.default_profile_img)
-            .error(R.drawable.default_profile_img)
+            .placeholder(R.drawable.default_profile)
+            .error(R.drawable.default_profile)
             .into(binding.ivUserProfile)
 
         // Configurar carrusel de imágenes

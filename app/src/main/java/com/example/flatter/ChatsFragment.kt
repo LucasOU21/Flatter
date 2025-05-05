@@ -1,4 +1,3 @@
-// app/src/main/java/com/example/flatter/ChatsFragment.kt
 package com.example.flatter
 
 import android.os.Bundle

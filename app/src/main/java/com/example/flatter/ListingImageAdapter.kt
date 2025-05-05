@@ -27,7 +27,7 @@ class ListingImageAdapter(private val images: List<String>) :
         Glide.with(holder.itemView.context)
             .load(imageUrl)
             .centerCrop()
-            .placeholder(R.drawable.placeholder_image_img)
+            .placeholder(R.drawable.placeholder_img2)
             //.error(R.drawable.error_image)
             .into(holder.imageView)
     }
