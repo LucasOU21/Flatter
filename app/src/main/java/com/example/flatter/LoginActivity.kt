@@ -1,4 +1,5 @@
 package com.example.flatter
+
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
@@ -17,11 +18,26 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
 
         // Inicializar Firebase Auth y Firestore
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
+
+        // Comprobar si ya hay un usuario conectado
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            // Verificar si el usuario existe en Firestore
+            db.collection("users").document(currentUser.uid).get()
+                .addOnSuccessListener { document ->
+                    if (document.exists()) {
+                        // El usuario existe, redirigir a HomeActivity
+                        startActivity(Intent(this, HomeActivity::class.java))
+                        finish()
+                    }
+                }
+        }
+
+        setContentView(R.layout.activity_login)
 
         val etEmail = findViewById<TextInputEditText>(R.id.etEmail)
         val etPassword = findViewById<TextInputEditText>(R.id.etPassword)
