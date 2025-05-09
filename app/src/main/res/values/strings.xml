@@ -19,7 +19,7 @@
         <item quantity="other">%d baños</item>
     </plurals>
 
-    //PERFIL
+    <!-- PERFIL -->
     <string name="profile">Perfil</string>
     <string name="chats">Chats</string>
     <string name="home">Inicio</string>
@@ -32,8 +32,39 @@
     <string name="max_budget">Presupuesto máximo</string>
     <string name="save_changes">Guardar cambios</string>
     <string name="no_chats_yet">Aún no tienes chats</string>
-
-
     <string name="no_listings_available">No hay listados disponibles</string>
 
+    <!-- LOGIN y REGISTRO -->
+    <string name="login_title">Inicia sesión en Flatter</string>
+    <string name="register_title">Únete a Flatter</string>
+    <string name="username_hint">Nombre de usuario</string>
+    <string name="password_hint">Contraseña</string>
+    <string name="confirm_password_hint">Confirmar contraseña</string>
+    <string name="forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="register_button">Crear cuenta</string>
+    <string name="login_button">Iniciar sesión</string>
+    <string name="no_account">¿No tienes cuenta? Regístrate</string>
+    <string name="back_to_login">¿Ya tienes cuenta? Inicia sesión</string>
+    <string name="terms_conditions">Acepto los términos y condiciones y la política de privacidad</string>
+    <string name="user_type_label">¿Qué tipo de usuario eres?</string>
+    <string name="renter_option">Inquilino</string>
+    <string name="owner_option">Propietario</string>
+
+    <!-- MENSAJES DE ERROR/ÉXITO -->
+    <string name="required_field">Campo obligatorio</string>
+    <string name="invalid_email">Email no válido</string>
+    <string name="invalid_phone">Número de teléfono no válido</string>
+    <string name="password_too_short">La contraseña debe tener al menos 6 caracteres</string>
+    <string name="passwords_not_match">Las contraseñas no coinciden</string>
+    <string name="terms_not_accepted">Debes aceptar los términos y condiciones</string>
+    <string name="registration_success">¡Registro completado con éxito!</string>
+    <string name="error_registration">Error en el registro: %1$s</string>
+    <string name="fill_all_fields">Por favor, completa todos los campos obligatorios</string>
+
+    <!-- FUERZA DE CONTRASEÑA -->
+    <string name="password_strength_weak">Débil</string>
+    <string name="password_strength_medium">Media</string>
+    <string name="password_strength_strong">Fuerte</string>
+    <string name="password_strength_very_strong">Muy fuerte</string>
+    <string name="password_strength_title">Fuerza de la contraseña:</string>
 </resources>
