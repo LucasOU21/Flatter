@@ -47,7 +47,7 @@
             android:layout_marginStart="16dp"
             android:layout_marginTop="16dp"
             android:elevation="10dp"
-            android:src="@drawable/default_profile"
+            android:src="@drawable/default_profile_img"
             app:civ_border_color="@color/white"
             app:civ_border_width="2dp"
             app:layout_constraintStart_toStartOf="parent"
@@ -108,10 +108,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:drawableStart="@drawable/ic_location"
                     android:drawablePadding="4dp"
                     android:textColor="@color/gray_dark"
                     android:textSize="14sp"
+                    app:drawableStartCompat="@drawable/ic_location_img"
                     tools:text="Eixample, Barcelona" />
 
                 <LinearLayout
@@ -125,10 +125,10 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="16dp"
-                        android:drawableStart="@drawable/ic_bed"
                         android:drawablePadding="4dp"
                         android:textColor="@color/gray_dark"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_bed_img"
                         tools:text="3 hab." />
 
                     <TextView
@@ -136,20 +136,20 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="16dp"
-                        android:drawableStart="@drawable/ic_bathroom"
                         android:drawablePadding="4dp"
                         android:textColor="@color/gray_dark"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_bathroom_img"
                         tools:text="2 baños" />
 
                     <TextView
                         android:id="@+id/tvArea"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:drawableStart="@drawable/ic_area"
                         android:drawablePadding="4dp"
                         android:textColor="@color/gray_dark"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_area_img"
                         tools:text="90 m²" />
                 </LinearLayout>
 

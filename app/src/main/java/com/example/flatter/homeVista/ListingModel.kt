@@ -1,4 +1,4 @@
-package com.example.flatter
+package com.example.flatter.homeVista
 
 data class ListingModel(
     val id: String,

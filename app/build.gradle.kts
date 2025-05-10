@@ -72,6 +72,8 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.firebase.firestore)
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -82,9 +84,12 @@ dependencies {
     //VIEWMODEL DEPEND
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
-    //cardStackView (para el efecto tipo Tinder)
-    implementation("com.lorentzos.swipecards:library:1.0.9")
 
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+
+    //PAGINA MAIN
     //glide para carga de imágenes
     implementation (libs.glide)
     annotationProcessor (libs.compiler)
@@ -94,5 +99,9 @@ dependencies {
 
     //viewPager2 para el carrusel de imágenes
     implementation (libs.androidx.viewpager2)
+
+    implementation (libs.material.v150)
+
+
 
 }
