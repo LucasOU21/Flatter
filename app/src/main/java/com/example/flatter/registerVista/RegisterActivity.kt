@@ -1,13 +1,14 @@
-package com.example.flatter
+package com.example.flatter.registerVista
 
 import android.content.Intent
 import android.os.Bundle
-import android.text.TextUtils
 import android.util.Log
 import android.util.Patterns
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.flatter.homeVista.HomeActivity
+import com.example.flatter.R
 import com.example.flatter.databinding.ActivityRegisterBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore

@@ -1,4 +1,4 @@
-package com.example.flatter
+package com.example.flatter.homeVista
 
 import android.content.Context
 import android.view.LayoutInflater
@@ -9,6 +9,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
+import com.example.flatter.R
 import com.example.flatter.databinding.ItemListingBinding
 import java.text.NumberFormat
 import java.util.Locale

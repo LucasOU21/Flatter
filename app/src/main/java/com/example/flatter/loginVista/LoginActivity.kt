@@ -1,4 +1,4 @@
-package com.example.flatter
+package com.example.flatter.loginVista
 
 import android.content.Intent
 import android.os.Bundle
@@ -7,6 +7,9 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.flatter.homeVista.HomeActivity
+import com.example.flatter.R
+import com.example.flatter.registerVista.RegisterActivity
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -21,6 +24,7 @@ class LoginActivity : AppCompatActivity() {
 
         // Inicializar Firebase Auth y Firestore
         auth = FirebaseAuth.getInstance()
+        auth.signOut()
         db = FirebaseFirestore.getInstance()
 
         // Comprobar si ya hay un usuario conectado
@@ -57,9 +61,9 @@ class LoginActivity : AppCompatActivity() {
         }
 
         // Redirigir a Registro
-        //tvRegister.setOnClickListener {
-        //    startActivity(Intent(this, RegisterActivity::class.java))
-        //}
+             tvRegister.setOnClickListener {
+             startActivity(Intent(this, RegisterActivity::class.java))
+        }
     }
 
     private fun loginUser(email: String, password: String) {

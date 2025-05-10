@@ -1,5 +1,5 @@
 // app/src/main/java/com/example/flatter/HomeFragment.kt
-package com.example.flatter
+package com.example.flatter.homeVista
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.bumptech.glide.Glide
+import com.example.flatter.R
 import com.example.flatter.databinding.FragmentHomeBinding
 import java.text.NumberFormat
 import java.util.Locale
