@@ -1,13 +1,16 @@
 package com.example.flatter.homeVista
-
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.flatter.ChatsFragment
 import com.example.flatter.ProfileFragment
 import com.example.flatter.R
 import com.example.flatter.databinding.ActivityHomeBinding
+import com.example.flatter.listingVista.CreateListingActivity
+import com.google.firebase.auth.FirebaseAuth
 
 class HomeActivity : AppCompatActivity() {
     private val TAG = "FlattrDebug"
@@ -27,6 +30,18 @@ class HomeActivity : AppCompatActivity() {
                     R.id.navigation_chats -> loadFragment(ChatsFragment())
                     R.id.navigation_home -> loadFragment(HomeFragment())
                     R.id.navigation_profile -> loadFragment(ProfileFragment())
+                    R.id.navigation_create -> {
+                        // Check if user is logged in
+                        if (FirebaseAuth.getInstance().currentUser != null) {
+                            // Start CreateListingActivity
+                            startActivity(Intent(this, CreateListingActivity::class.java))
+                            // Return false to not select this item (stay on current fragment)
+                            false
+                        } else {
+                            Toast.makeText(this, "Debes iniciar sesión para crear un anuncio", Toast.LENGTH_SHORT).show()
+                            false
+                        }
+                    }
                     else -> false
                 }
             }

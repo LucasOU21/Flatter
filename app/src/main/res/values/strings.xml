@@ -67,4 +67,9 @@
     <string name="password_strength_strong">Fuerte</string>
     <string name="password_strength_very_strong">Muy fuerte</string>
     <string name="password_strength_title">Fuerza de la contraseña:</string>
+
+    <!-- CREAR LISTING -->
+    <string name="create">Crear</string>
+    <string name="photos_selected">fotos seleccionadas</string>
+
 </resources>
