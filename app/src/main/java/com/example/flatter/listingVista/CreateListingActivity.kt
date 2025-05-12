@@ -11,7 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.flatter.R
 import com.example.flatter.databinding.ActivityCreateListingBinding
-import com.google.android.ads.mediationtestsuite.activities.HomeActivity
+import com.example.flatter.homeVista.HomeActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
