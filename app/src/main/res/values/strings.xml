@@ -8,6 +8,9 @@
     <string name="area_metros">%1$d m²</string>
     <string name="publicado_por">Publicado por: %1$s</string>
     <string name="publicado_fecha">Publicado: %1$s</string>
+    <string name="no_more_listings">No hay más listados disponibles</string>
+    <string name="loading_more">Buscando más propiedades...</string>
+    <string name="sign_out">Cerrar sesión</string>
 
     <plurals name="bedroom_count">
         <item quantity="one">%d hab.</item>
@@ -71,5 +74,6 @@
     <!-- CREAR LISTING -->
     <string name="create">Crear</string>
     <string name="photos_selected">fotos seleccionadas</string>
+
 
 </resources>

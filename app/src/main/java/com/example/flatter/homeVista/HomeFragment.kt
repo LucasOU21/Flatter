@@ -1,4 +1,3 @@
-// app/src/main/java/com/example/flatter/HomeFragment.kt
 package com.example.flatter.homeVista
 
 import android.os.Bundle
@@ -7,10 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
 import com.bumptech.glide.Glide
 import com.example.flatter.R
 import com.example.flatter.databinding.FragmentHomeBinding
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -19,10 +19,10 @@ class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var viewModel: HomeViewModel
     private lateinit var listingImageAdapter: ListingImageAdapter
     private var currentListingIndex = 0
     private var listings = mutableListOf<ListingModel>()
+    private val db = FirebaseFirestore.getInstance()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -36,153 +36,205 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Inicializar ViewModel
-        viewModel = ViewModelProvider(requireActivity())[HomeViewModel::class.java]
+        // Configure buttons
+        setupButtons()
 
-        // Configurar botones
-        configurarBotones()
-
-        // Observar listados
-        observarListados()
-
-        // Cargar listados iniciales
-        viewModel.cargarListados()
+        // Load listings from Firebase
+        loadListingsFromFirebase()
     }
 
-    private fun configurarBotones() {
-        // Botón rechazar
+    private fun setupButtons() {
+        // Reject button
         binding.btnReject.setOnClickListener {
             if (listings.isNotEmpty() && currentListingIndex < listings.size) {
-                val currentListing = listings[currentListingIndex]
-                viewModel.rechazarListado(currentListing.id)
+                // Move to next listing
+                currentListingIndex++
 
-                // Mostrar siguiente listado
-                mostrarSiguienteListado()
+                if (currentListingIndex < listings.size) {
+                    displayCurrentListing()
+                } else {
+                    // No more listings, show message
+                    showNoMoreListingsMessage()
+                }
             }
         }
 
-        // Botón aceptar
+        // Accept button
         binding.btnAccept.setOnClickListener {
             if (listings.isNotEmpty() && currentListingIndex < listings.size) {
                 val currentListing = listings[currentListingIndex]
-                viewModel.aceptarListado(currentListing.id)
 
-                // Mostrar mensaje de coincidencia
+                // Save this listing as "liked" in Firestore
+                saveLikedListing(currentListing.id)
+
+                // Show match message
                 Toast.makeText(
                     requireContext(),
                     "¡Coincidencia! Ponte en contacto con ${currentListing.userName}",
                     Toast.LENGTH_SHORT
                 ).show()
 
-                // Mostrar siguiente listado
-                mostrarSiguienteListado()
+                // Move to next listing
+                currentListingIndex++
+
+                if (currentListingIndex < listings.size) {
+                    displayCurrentListing()
+                } else {
+                    // No more listings, show message
+                    showNoMoreListingsMessage()
+                }
             }
         }
     }
 
-    private fun observarListados() {
-        viewModel.listados.observe(viewLifecycleOwner) { nuevosListados ->
-            if (nuevosListados.isNotEmpty()) {
-                // Actualizar la lista de listados
-                listings.clear()
-                listings.addAll(nuevosListados)
-                currentListingIndex = 0
+    private fun loadListingsFromFirebase() {
+        showLoading(true)
 
-                // Mostrar el primer listado
-                mostrarListadoActual()
-            } else {
-                // No hay listados disponibles
-                mostrarMensajeNoListados()
-            }
-        }
+        // Clear existing listings
+        listings.clear()
 
-        viewModel.cargando.observe(viewLifecycleOwner) { estaCargando ->
-            binding.progressBar.visibility = if (estaCargando) View.VISIBLE else View.GONE
-            if (estaCargando) {
-                binding.cardListing.visibility = View.INVISIBLE
-            }
-        }
+        // Query Firestore for listings
+        db.collection("listings")
+            .orderBy("createdAt", Query.Direction.DESCENDING) // Most recent first
+            .limit(20) // Limit to 20 listings for performance
+            .get()
+            .addOnSuccessListener { documents ->
+                if (documents.isEmpty) {
+                    showNoListingsMessage()
+                    return@addOnSuccessListener
+                }
 
-        viewModel.error.observe(viewLifecycleOwner) { mensajeError ->
-            if (!mensajeError.isNullOrEmpty()) {
-                Toast.makeText(requireContext(), mensajeError, Toast.LENGTH_LONG).show()
+                // Parse documents into ListingModel objects
+                for (document in documents) {
+                    try {
+                        val id = document.getString("id") ?: document.id
+                        val title = document.getString("title") ?: ""
+                        val description = document.getString("description") ?: ""
+                        val price = document.getDouble("price") ?: 0.0
+                        val location = document.getString("location") ?: ""
+                        val bedrooms = document.getLong("bedrooms")?.toInt() ?: 1
+                        val bathrooms = document.getLong("bathrooms")?.toInt() ?: 1
+                        val area = document.getLong("area")?.toInt() ?: 0
+
+                        // Get image URLs (might be stored as an array)
+                        val imagesList = document.get("imageUrls") as? List<String> ?: listOf()
+
+                        val userId = document.getString("userId") ?: ""
+                        val userName = document.getString("userName") ?: "Usuario"
+                        val userProfileImageUrl = document.getString("userProfileImageUrl") ?: ""
+                        val publishedDate = document.getString("publishedDate") ?: ""
+
+                        val listing = ListingModel(
+                            id = id,
+                            title = title,
+                            description = description,
+                            price = price,
+                            location = location,
+                            bedrooms = bedrooms,
+                            bathrooms = bathrooms,
+                            area = area,
+                            imageUrls = imagesList,
+                            userId = userId,
+                            userName = userName,
+                            userProfileImageUrl = userProfileImageUrl,
+                            publishedDate = publishedDate
+                        )
+
+                        listings.add(listing)
+                    } catch (e: Exception) {
+                        // Skip any malformed documents
+                        continue
+                    }
+                }
+
+                // Show the first listing
+                if (listings.isNotEmpty()) {
+                    currentListingIndex = 0
+                    displayCurrentListing()
+                } else {
+                    showNoListingsMessage()
+                }
+
+                showLoading(false)
             }
-        }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error al cargar listados: ${e.message}", Toast.LENGTH_SHORT).show()
+                showLoading(false)
+                showNoListingsMessage()
+            }
     }
 
-    private fun mostrarListadoActual() {
+    private fun displayCurrentListing() {
         if (listings.isEmpty() || currentListingIndex >= listings.size) {
-            mostrarMensajeNoListados()
+            showNoMoreListingsMessage()
             return
         }
 
-        binding.cardListing.visibility = View.VISIBLE
-        binding.progressBar.visibility = View.GONE
-
         val listing = listings[currentListingIndex]
 
-        // Configurar textos del listado
+        // Show the card
+        binding.cardListing.visibility = View.VISIBLE
+
+        // Set text fields
         binding.tvTitle.text = listing.title
         binding.tvLocation.text = listing.location
         binding.tvDescription.text = listing.description
-        binding.tvUserName.text = requireContext().getString(R.string.publicado_por, listing.userName)
-        binding.tvPublishedDate.text = requireContext().getString(R.string.publicado_fecha, listing.publishedDate)
+        binding.tvUserName.text = getString(R.string.publicado_por, listing.userName)
+        binding.tvPublishedDate.text = getString(R.string.publicado_fecha, listing.publishedDate)
 
-        // Formatear precio con moneda
+        // Format price
         val formattedPrice = NumberFormat.getCurrencyInstance(Locale("es", "ES"))
             .format(listing.price)
-        binding.tvPrice.text = requireContext().getString(R.string.precio_por_mes, formattedPrice)
+        binding.tvPrice.text = getString(R.string.precio_por_mes, formattedPrice)
 
-        // Configurar detalles
-        binding.tvBedrooms.text = requireContext().resources.getQuantityString(
+        // Set details
+        binding.tvBedrooms.text = resources.getQuantityString(
             R.plurals.bedroom_count,
             listing.bedrooms,
             listing.bedrooms
         )
-        binding.tvBathrooms.text = requireContext().resources.getQuantityString(
+        binding.tvBathrooms.text = resources.getQuantityString(
             R.plurals.bathroom_count,
             listing.bathrooms,
             listing.bathrooms
         )
-        binding.tvArea.text = requireContext().getString(R.string.area_metros, listing.area)
+        binding.tvArea.text = getString(R.string.area_metros, listing.area)
 
-        // Cargar imagen de perfil del usuario
+        // Load user profile image
         Glide.with(requireContext())
             .load(listing.userProfileImageUrl)
-            .placeholder(R.drawable.default_profile)
-            .error(R.drawable.default_profile)
+            .placeholder(R.drawable.default_profile_img)
+            .error(R.drawable.default_profile_img)
             .into(binding.ivUserProfile)
 
-        // Configurar carrusel de imágenes
-        configurarCarruselImagenes(listing.imageUrls)
+        // Setup image carousel
+        setupImageCarousel(listing.imageUrls)
     }
 
-    private fun configurarCarruselImagenes(imageUrls: List<String>) {
-        // Configurar adaptador de imágenes
+    private fun setupImageCarousel(imageUrls: List<String>) {
+        // Create adapter
         listingImageAdapter = ListingImageAdapter(imageUrls)
         binding.viewPagerImages.adapter = listingImageAdapter
 
-        // Configurar indicador de puntos
-        configurarIndicadorPuntos(imageUrls.size)
+        // Setup dots indicator
+        setupDotsIndicator(imageUrls.size)
 
-        // Manejar cambios de página
+        // Handle page changes
         binding.viewPagerImages.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                actualizarIndicadorPuntos(position)
+                updateDotsIndicator(position)
             }
         })
     }
 
-    private fun configurarIndicadorPuntos(count: Int) {
+    private fun setupDotsIndicator(count: Int) {
         binding.dotsIndicator.removeAllViews()
 
-        // Crear puntos indicadores
-        val dots = Array(count) { android.widget.ImageView(requireContext()) }
-
-        for (i in dots.indices) {
-            dots[i] = android.widget.ImageView(requireContext())
-            dots[i].setImageResource(
+        // Create indicator dots
+        for (i in 0 until count) {
+            val dot = android.widget.ImageView(requireContext())
+            dot.setImageResource(
                 if (i == 0) R.drawable.radio_button_checked_24
                 else R.drawable.radio_button_unchecked_24
             )
@@ -192,11 +244,11 @@ class HomeFragment : Fragment() {
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
             )
             params.setMargins(8, 0, 8, 0)
-            binding.dotsIndicator.addView(dots[i], params)
+            binding.dotsIndicator.addView(dot, params)
         }
     }
 
-    private fun actualizarIndicadorPuntos(position: Int) {
+    private fun updateDotsIndicator(position: Int) {
         val count = binding.dotsIndicator.childCount
 
         for (i in 0 until count) {
@@ -208,25 +260,51 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun mostrarSiguienteListado() {
-        currentListingIndex++
+    private fun saveLikedListing(listingId: String) {
+        val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
 
-        // Comprobar si necesitamos cargar más listados
-        if (currentListingIndex >= listings.size - 2) {
-            viewModel.cargarMasListados()
-        }
+        // Save to "likes" collection
+        val likeData = hashMapOf(
+            "userId" to currentUser.uid,
+            "listingId" to listingId,
+            "timestamp" to com.google.firebase.Timestamp.now()
+        )
 
-        if (currentListingIndex < listings.size) {
-            mostrarListadoActual()
-        } else {
-            mostrarMensajeNoListados()
-        }
+        db.collection("likes")
+            .add(likeData)
+            .addOnSuccessListener {
+                // Success, already handled in UI
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error al guardar like: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
-    private fun mostrarMensajeNoListados() {
+    private fun showNoMoreListingsMessage() {
         binding.cardListing.visibility = View.INVISIBLE
-        binding.progressBar.visibility = View.GONE
-        Toast.makeText(requireContext(), getString(R.string.no_listings_available), Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.no_listings_available), Toast.LENGTH_LONG).show()
+
+        // Optional: fetch more listings
+        loadMoreListings()
+    }
+
+    private fun showNoListingsMessage() {
+        binding.cardListing.visibility = View.INVISIBLE
+        Toast.makeText(requireContext(), getString(R.string.no_listings_available), Toast.LENGTH_LONG).show()
+    }
+
+    private fun loadMoreListings() {
+        // Here you could implement pagination to load more listings
+        // For now we'll just show a message
+        Toast.makeText(requireContext(), "Buscando más propiedades...", Toast.LENGTH_SHORT).show()
+
+        // TODO: Implement pagination logic
+    }
+
+    private fun showLoading(isLoading: Boolean) {
+        binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+        binding.btnAccept.isEnabled = !isLoading
+        binding.btnReject.isEnabled = !isLoading
     }
 
     override fun onDestroyView() {
