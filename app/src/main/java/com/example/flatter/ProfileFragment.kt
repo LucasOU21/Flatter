@@ -1,17 +1,42 @@
 package com.example.flatter
 
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import com.bumptech.glide.Glide
 import com.example.flatter.databinding.FragmentProfileBinding
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 
 class ProfileFragment : Fragment() {
 
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
+
+    private lateinit var auth: FirebaseAuth
+    private lateinit var db: FirebaseFirestore
+    private lateinit var storage: FirebaseStorage
+
+    private var profileImageUri: Uri? = null
+
+    // Register image picker activity
+    private val pickImage = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                profileImageUri = uri
+                binding.ivProfilePicture.setImageURI(uri)
+            }
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -25,49 +50,218 @@ class ProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Cargar datos de perfil (en una implementación real, obtendríamos estos datos desde Firebase)
-        cargarDatosPerfil()
+        // Initialize Firebase
+        auth = FirebaseAuth.getInstance()
+        db = FirebaseFirestore.getInstance()
+        storage = FirebaseStorage.getInstance()
 
-        // Configurar listener para botón de guardar
-        binding.btnSaveProfile.setOnClickListener {
-            guardarPerfil()
-        }
+        // Configure UI listeners
+        setupListeners()
 
-        // Configurar listener para cambiar foto
+        // Load user profile data
+        loadUserProfile()
+    }
+
+    private fun setupListeners() {
+        // Image edit listener
         binding.tvEditPhoto.setOnClickListener {
-            // Aquí implementaríamos la lógica para seleccionar una foto de la galería
-            // o tomar una foto con la cámara
-            Toast.makeText(context, "Función no implementada", Toast.LENGTH_SHORT).show()
+            val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+            pickImage.launch(galleryIntent)
+        }
+
+        // Save button listener
+        binding.btnSaveProfile.setOnClickListener {
+            saveUserProfile()
+        }
+
+        // Add sign out button functionality
+        binding.btnSignOut?.setOnClickListener {
+            signOut()
         }
     }
 
-    private fun cargarDatosPerfil() {
-        // En una implementación real, obtendríamos estos datos desde Firebase
-        // Por ahora, usaremos datos de ejemplo
-        binding.etFullName.setText("Ana García")
-        binding.etEmail.setText("ana.garcia@ejemplo.com")
-        binding.etPhone.setText("+34 612 345 678")
-        binding.etBio.setText("Estudiante de arquitectura, 25 años. Me gusta el cine, la música y viajar.")
-        binding.etMaxBudget.setText("800")
-    }
-
-    private fun guardarPerfil() {
-        // Validar datos
-        val nombre = binding.etFullName.text.toString().trim()
-        val email = binding.etEmail.text.toString().trim()
-        val telefono = binding.etPhone.text.toString().trim()
-        val bio = binding.etBio.text.toString().trim()
-        val presupuesto = binding.etMaxBudget.text.toString().trim()
-
-        // Verificar que los campos obligatorios no estén vacíos
-        if (nombre.isEmpty() || email.isEmpty()) {
-            Toast.makeText(context, "Por favor, completa los campos obligatorios", Toast.LENGTH_SHORT).show()
+    private fun loadUserProfile() {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            // Not logged in, redirect to login
+            navigateToLogin()
             return
         }
 
-        // En una implementación real, guardaríamos estos datos en Firebase
-        // Por ahora, solo mostraremos un mensaje de éxito
-        Toast.makeText(context, "Perfil guardado correctamente", Toast.LENGTH_SHORT).show()
+        // Show loading state
+        showLoading(true)
+
+        // Get user data from Firestore
+        db.collection("users").document(currentUser.uid)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    // Populate fields with user data
+                    binding.etFullName.setText(document.getString("fullName") ?: "")
+                    binding.etEmail.setText(document.getString("email") ?: "")
+                    binding.etPhone.setText(document.getString("phone") ?: "")
+                    binding.etBio.setText(document.getString("bio") ?: "")
+
+                    // Budget might be stored as a number
+                    val budget = document.getDouble("maxBudget")?.toString() ?: ""
+                    binding.etMaxBudget.setText(budget)
+
+                    // Load profile image if available
+                    val profileImageUrl = document.getString("profileImageUrl")
+                    if (!profileImageUrl.isNullOrEmpty()) {
+                        Glide.with(requireContext())
+                            .load(profileImageUrl)
+                            .placeholder(R.drawable.default_profile_img)
+                            .error(R.drawable.default_profile_img)
+                            .into(binding.ivProfilePicture)
+                    }
+                } else {
+                    // Document doesn't exist, create it
+                    createNewUserProfile(currentUser.uid, currentUser.email ?: "")
+                }
+                showLoading(false)
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error al cargar perfil: ${e.message}", Toast.LENGTH_SHORT).show()
+                showLoading(false)
+            }
+    }
+
+    private fun createNewUserProfile(userId: String, email: String) {
+        val userData = hashMapOf(
+            "email" to email,
+            "fullName" to "",
+            "phone" to "",
+            "bio" to "",
+            "maxBudget" to 0.0,
+            "profileImageUrl" to "",
+            "createdAt" to com.google.firebase.Timestamp.now()
+        )
+
+        db.collection("users").document(userId)
+            .set(userData)
+            .addOnSuccessListener {
+                // Profile created successfully, fields already empty
+                binding.etEmail.setText(email)
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error al crear perfil: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun saveUserProfile() {
+        val currentUser = auth.currentUser ?: return
+
+        // Validate form
+        val fullName = binding.etFullName.text.toString().trim()
+        val email = binding.etEmail.text.toString().trim()
+        val phone = binding.etPhone.text.toString().trim()
+        val bio = binding.etBio.text.toString().trim()
+        val maxBudgetStr = binding.etMaxBudget.text.toString().trim()
+
+        if (fullName.isEmpty()) {
+            binding.etFullName.error = "Campo obligatorio"
+            return
+        }
+
+        if (email.isEmpty()) {
+            binding.etEmail.error = "Campo obligatorio"
+            return
+        }
+
+        // Show loading
+        showLoading(true)
+
+        // Handle profile image upload if changed
+        if (profileImageUri != null) {
+            uploadProfileImage(currentUser.uid) { imageUrl ->
+                saveUserDataToFirestore(currentUser.uid, fullName, email, phone, bio, maxBudgetStr, imageUrl)
+            }
+        } else {
+            // No new image, just update the text fields
+            saveUserDataToFirestore(currentUser.uid, fullName, email, phone, bio, maxBudgetStr, null)
+        }
+    }
+
+    private fun uploadProfileImage(userId: String, onSuccess: (String) -> Unit) {
+        val imageRef = storage.reference.child("profile_images/$userId.jpg")
+
+        profileImageUri?.let { uri ->
+            imageRef.putFile(uri)
+                .addOnSuccessListener {
+                    // Get download URL
+                    imageRef.downloadUrl
+                        .addOnSuccessListener { downloadUri ->
+                            onSuccess(downloadUri.toString())
+                        }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(requireContext(), "Error al obtener URL de imagen: ${e.message}", Toast.LENGTH_SHORT).show()
+                            showLoading(false)
+                        }
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(requireContext(), "Error al subir imagen: ${e.message}", Toast.LENGTH_SHORT).show()
+                    showLoading(false)
+                }
+        }
+    }
+
+    private fun saveUserDataToFirestore(
+        userId: String,
+        fullName: String,
+        email: String,
+        phone: String,
+        bio: String,
+        maxBudgetStr: String,
+        imageUrl: String?
+    ) {
+        // Convert budget to double or 0.0 if empty
+        val maxBudget = maxBudgetStr.toDoubleOrNull() ?: 0.0
+
+        // Create update map
+        val userUpdates = hashMapOf(
+            "fullName" to fullName,
+            "email" to email,
+            "phone" to phone,
+            "bio" to bio,
+            "maxBudget" to maxBudget,
+            "updatedAt" to com.google.firebase.Timestamp.now()
+        )
+
+        // Add image URL if provided
+        if (imageUrl != null) {
+            userUpdates["profileImageUrl"] = imageUrl
+        }
+
+        // Update Firestore
+        db.collection("users").document(userId)
+            .update(userUpdates as Map<String, Any>)
+            .addOnSuccessListener {
+                Toast.makeText(requireContext(), "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
+                showLoading(false)
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error al actualizar perfil: ${e.message}", Toast.LENGTH_SHORT).show()
+                showLoading(false)
+            }
+    }
+
+    private fun signOut() {
+        auth.signOut()
+        navigateToLogin()
+    }
+
+    private fun navigateToLogin() {
+        // Import the correct LoginActivity class based on your package structure
+        val intent = Intent(requireContext(), com.example.flatter.loginVista.LoginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        requireActivity().finish()
+    }
+
+    private fun showLoading(isLoading: Boolean) {
+        binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+        binding.btnSaveProfile.isEnabled = !isLoading
     }
 
     override fun onDestroyView() {
