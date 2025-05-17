@@ -3,7 +3,7 @@ package com.example.flatter.listingVista
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.viewpager2.widget.ViewPager2
 import com.example.flatter.databinding.ActivityListingAnalyticsBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -14,6 +14,9 @@ class ListingAnalyticsActivity : AppCompatActivity() {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private val userId = auth.currentUser?.uid
+
+    private lateinit var pagerAdapter: ListingAnalyticsPagerAdapter
+    private var listings = mutableListOf<ListingAnalyticsModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,11 +29,60 @@ class ListingAnalyticsActivity : AppCompatActivity() {
         supportActionBar?.title = "Estadísticas de anuncios"
         binding.toolbar.setNavigationOnClickListener { onBackPressed() }
 
-        // Set up RecyclerView
-        binding.recyclerViewListings.layoutManager = LinearLayoutManager(this)
+        // Set up ViewPager
+        setupViewPager()
+
+        // Set up navigation buttons
+        setupPageNavigation()
 
         // Load user's listings
         loadUserListings()
+    }
+
+    private fun setupViewPager() {
+        // Initialize the adapter with empty list (will be updated when data loads)
+        pagerAdapter = ListingAnalyticsPagerAdapter(
+            listings,
+            onStatusChange = { listingId, newStatus ->
+                updateListingStatus(listingId, newStatus)
+            }
+        )
+
+        binding.viewPagerListings.adapter = pagerAdapter
+
+        // Add page change callback to update the UI
+        binding.viewPagerListings.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                updatePageInfo(position)
+                updateNavigationButtons(position)
+            }
+        })
+    }
+
+    private fun setupPageNavigation() {
+        binding.btnPrevious.setOnClickListener {
+            val currentPosition = binding.viewPagerListings.currentItem
+            if (currentPosition > 0) {
+                binding.viewPagerListings.currentItem = currentPosition - 1
+            }
+        }
+
+        binding.btnNext.setOnClickListener {
+            val currentPosition = binding.viewPagerListings.currentItem
+            if (currentPosition < listings.size - 1) {
+                binding.viewPagerListings.currentItem = currentPosition + 1
+            }
+        }
+    }
+
+    private fun updatePageInfo(position: Int) {
+        binding.tvPageInfo.text = "Anuncio ${position + 1} de ${listings.size}"
+    }
+
+    private fun updateNavigationButtons(position: Int) {
+        binding.btnPrevious.isEnabled = position > 0
+        binding.btnNext.isEnabled = position < listings.size - 1
     }
 
     private fun loadUserListings() {
@@ -43,12 +95,12 @@ class ListingAnalyticsActivity : AppCompatActivity() {
                 binding.progressBar.visibility = View.GONE
 
                 if (documents.isEmpty) {
-                    binding.tvNoListings.visibility = View.VISIBLE
-                    binding.recyclerViewListings.visibility = View.GONE
+                    showNoListingsMessage()
                     return@addOnSuccessListener
                 }
 
-                val listings = documents.mapNotNull { document ->
+                listings.clear()
+                listings.addAll(documents.mapNotNull { document ->
                     try {
                         val id = document.id
                         val title = document.getString("title") ?: ""
@@ -65,19 +117,17 @@ class ListingAnalyticsActivity : AppCompatActivity() {
                     } catch (e: Exception) {
                         null
                     }
+                })
+
+                if (listings.isNotEmpty()) {
+                    pagerAdapter.notifyDataSetChanged()
+                    updatePageInfo(0)
+                    updateNavigationButtons(0)
+                    binding.viewPagerListings.visibility = View.VISIBLE
+                    binding.layoutPagination.visibility = View.VISIBLE
+                } else {
+                    showNoListingsMessage()
                 }
-
-                // Set up adapter
-                val adapter = ListingAnalyticsAdapter(
-                    listings,
-                    onStatusChange = { listingId, newStatus ->
-                        updateListingStatus(listingId, newStatus)
-                    }
-                )
-                binding.recyclerViewListings.adapter = adapter
-
-                binding.tvNoListings.visibility = View.GONE
-                binding.recyclerViewListings.visibility = View.VISIBLE
             }
             .addOnFailureListener { e ->
                 binding.progressBar.visibility = View.GONE
@@ -87,19 +137,17 @@ class ListingAnalyticsActivity : AppCompatActivity() {
     }
 
     private fun updateListingStatus(listingId: String, newStatus: String) {
-        binding.progressBar.visibility = View.VISIBLE
-
         db.collection("listings").document(listingId)
             .update("status", newStatus)
-            .addOnSuccessListener {
-                binding.progressBar.visibility = View.GONE
-                // Reload the listings to reflect the change
-                loadUserListings()
-            }
             .addOnFailureListener { e ->
-                binding.progressBar.visibility = View.GONE
                 binding.tvError.text = "Error al actualizar estado: ${e.message}"
                 binding.tvError.visibility = View.VISIBLE
             }
+    }
+
+    private fun showNoListingsMessage() {
+        binding.tvNoListings.visibility = View.VISIBLE
+        binding.viewPagerListings.visibility = View.GONE
+        binding.layoutPagination.visibility = View.GONE
     }
 }
