@@ -2,11 +2,14 @@ package com.example.flatter.registerVista
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.util.Patterns
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.flatter.PasswordStrengthMeter
 import com.example.flatter.homeVista.HomeActivity
 import com.example.flatter.R
 import com.example.flatter.databinding.ActivityRegisterBinding
@@ -29,6 +32,9 @@ class RegisterActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
+        // Setup password strength meter
+        setupPasswordStrengthMeter()
+
         // Configurar botón de registro
         binding.btnRegister.setOnClickListener {
             if (validateForm()) {
@@ -36,12 +42,12 @@ class RegisterActivity : AppCompatActivity() {
             }
         }
 
-        // Volver a la pantalla de login
+        //Volver a la pantalla de login
         binding.tvLogin.setOnClickListener {
             finish() // Regresa a la actividad anterior (Login)
         }
 
-        // Aplicar animaciones a los campos al enfocarlos (opcional, para mejorar la interactividad)
+        //Aplicar animaciones a los campos al enfocarlos (opcional, para mejorar la interactividad)
         setupFocusAnimations()
     }
 
@@ -183,6 +189,7 @@ class RegisterActivity : AppCompatActivity() {
         // Crear objeto de usuario para Firestore
         val user = hashMapOf(
             "username" to username,
+            "fullName" to username, // Add this line to ensure the username is also saved as fullName
             "email" to email,
             "phone" to phone,
             "userType" to userType,
@@ -231,5 +238,53 @@ class RegisterActivity : AppCompatActivity() {
         binding.rbRenter.isEnabled = !show
         binding.rbOwner.isEnabled = !show
         binding.cbTerms.isEnabled = !show
+    }
+
+    private fun setupPasswordStrengthMeter() {
+        // Get references to the password field and strength meter
+        val etPassword = binding.etPassword
+        val passwordStrengthMeter = binding.passwordStrengthMeter
+        val tvPasswordStrength = binding.tvPasswordStrength
+
+        // Connect the password field to the strength meter
+        passwordStrengthMeter.setStrengthTextView(tvPasswordStrength)
+
+        // Add a text change listener to the password field
+        etPassword.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                // Calculate the password strength and update the meter
+                val password = s.toString()
+                val strength = calculatePasswordStrength(password)
+                passwordStrengthMeter.setStrength(strength)
+            }
+        })
+    }
+
+    // Password strength calculation function
+    private fun calculatePasswordStrength(password: String): Int {
+        if (password.isEmpty()) return PasswordStrengthMeter.STRENGTH_WEAK
+
+        var score = 0
+
+        // Length criteria
+        if (password.length >= 8) score++
+        if (password.length >= 12) score++
+
+        // Complexity criteria
+        if (password.any { it.isDigit() }) score++
+        if (password.any { it.isLowerCase() }) score++
+        if (password.any { it.isUpperCase() }) score++
+        if (password.any { !it.isLetterOrDigit() }) score++
+
+        return when {
+            score <= 2 -> PasswordStrengthMeter.STRENGTH_WEAK
+            score <= 4 -> PasswordStrengthMeter.STRENGTH_MEDIUM
+            score <= 6 -> PasswordStrengthMeter.STRENGTH_STRONG
+            else -> PasswordStrengthMeter.STRENGTH_VERY_STRONG
+        }
     }
 }

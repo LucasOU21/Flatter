@@ -14,6 +14,6 @@
         android:title="Profile" />
     <item
         android:id="@+id/navigation_create"
-        android:icon="@drawable/ic_add"
-        android:title="Crear" />
+        android:icon="@drawable/ic_menu"
+        android:title="Gestionar" />
 </menu>

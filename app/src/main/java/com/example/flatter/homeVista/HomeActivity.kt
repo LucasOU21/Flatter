@@ -10,6 +10,7 @@ import com.example.flatter.ProfileFragment
 import com.example.flatter.R
 import com.example.flatter.databinding.ActivityHomeBinding
 import com.example.flatter.listingVista.CreateListingActivity
+import com.example.flatter.listingVista.ListingManagerFragment
 import com.google.firebase.auth.FirebaseAuth
 
 class HomeActivity : AppCompatActivity() {
@@ -33,12 +34,11 @@ class HomeActivity : AppCompatActivity() {
                     R.id.navigation_create -> {
                         // Check if user is logged in
                         if (FirebaseAuth.getInstance().currentUser != null) {
-                            // Start CreateListingActivity
-                            startActivity(Intent(this, CreateListingActivity::class.java))
-                            // Return false to not select this item (stay on current fragment)
-                            false
+                            // Load the ListingManagerFragment instead of starting CreateListingActivity
+                            loadFragment(ListingManagerFragment())
+                            true
                         } else {
-                            Toast.makeText(this, "Debes iniciar sesión para crear un anuncio", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Debes iniciar sesión para gestionar anuncios", Toast.LENGTH_SHORT).show()
                             false
                         }
                     }
