@@ -107,6 +107,8 @@ dependencies {
     //BarChart PhilJay
     implementation(libs.mpandroidchart)
 
+    implementation("com.google.android.material:material:1.8.0")
+
 
 
 }

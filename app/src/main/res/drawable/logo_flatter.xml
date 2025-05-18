@@ -1,0 +1,94 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="300"
+    android:viewportHeight="300">
+
+    <path
+        android:pathData="M150,50 L260,130 L260,250 Q260,260 250,260 L50,260 Q40,260 40,250 L40,130 Z"
+        android:strokeWidth="20"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startColor="#8A2BE2"
+                android:endColor="#1E90FF"
+                android:startX="50"
+                android:startY="50"
+                android:endX="250"
+                android:endY="250"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+
+    <!-- Left person circle -->
+    <path
+        android:pathData="M105,140 A25,25 0 1 1 105,190 A25,25 0 1 1 105,140"
+        android:strokeWidth="15"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startColor="#8A2BE2"
+                android:endColor="#1E90FF"
+                android:startX="80"
+                android:startY="140"
+                android:endX="130"
+                android:endY="190"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+
+    <!-- Left person body -->
+    <path
+        android:pathData="M80,230 A40,40 0 0 1 130,230"
+        android:strokeWidth="15"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startColor="#8A2BE2"
+                android:endColor="#1E90FF"
+                android:startX="80"
+                android:startY="190"
+                android:endX="130"
+                android:endY="230"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+
+    <!-- Right person circle -->
+    <path
+        android:pathData="M195,140 A25,25 0 1 1 195,190 A25,25 0 1 1 195,140"
+        android:strokeWidth="15"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startColor="#8A2BE2"
+                android:endColor="#1E90FF"
+                android:startX="170"
+                android:startY="140"
+                android:endX="220"
+                android:endY="190"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+
+    <!-- Right person body -->
+    <path
+        android:pathData="M170,230 A40,40 0 0 1 220,230"
+        android:strokeWidth="15"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startColor="#8A2BE2"
+                android:endColor="#1E90FF"
+                android:startX="170"
+                android:startY="190"
+                android:endX="220"
+                android:endY="230"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+</vector>

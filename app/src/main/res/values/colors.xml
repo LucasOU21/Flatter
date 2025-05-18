@@ -1,5 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Primary Brand Colors -->
+    <color name="colorPrimary">#6C63FF</color> <!-- Refined purple -->
+    <color name="colorPrimaryDark">#5A53DF</color> <!-- Deeper purple -->
+    <color name="colorAccent">#38B9FF</color> <!-- Vibrant blue accent -->
+
+    <!-- Secondary/Accent Colors -->
+    <color name="colorAccentSoft">#7EDBFF</color> <!-- Soft blue -->
+    <color name="colorAccentAlt">#FF9DEF</color> <!-- Soft pink accent -->
+
+    <!-- UI Colors -->
+    <color name="colorSuccess">#4AD991</color> <!-- Accept/success green -->
+    <color name="colorError">#FF6B6B</color> <!-- Reject/error red -->
+    <color name="colorWarning">#FFBE3F</color> <!-- Warning amber -->
+
+    <!-- Neutral Colors -->
+    <color name="colorBackground">#F8F9FC</color> <!-- Light background -->
+    <color name="colorSurface">#FFFFFF</color> <!-- Surface white -->
+    <color name="colorSurfaceDark">#F1F3F9</color> <!-- Alt surface -->
+
+    <!-- Text Colors -->
+    <color name="text_primary">#15194A</color> <!-- Dark blue text -->
+    <color name="text_secondary">#696F8C</color> <!-- Mid gray text -->
+    <color name="text_hint">#9EA5B8</color> <!-- Light gray text -->
+
+    <!-- Legacy colors (keep for backward compatibility) -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
@@ -7,11 +32,8 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="colorPrimary">#1E88E5</color>
-    <color name="colorPrimaryDark">#1565C0</color>
-    <color name="colorAccent">#42A5F5</color>
-    <color name="colorAccept">#4CAF50</color>
-    <color name="colorReject">#F44336</color>
-    <color name="gray_dark">#757575</color>
-    <color name="gray_light">#E0E0E0</color>
+    <color name="colorReject">#FF6B6B</color> <!-- Update to match colorError -->
+    <color name="colorAccept">#4AD991</color> <!-- Update to match colorSuccess -->
+    <color name="gray_dark">#696F8C</color> <!-- Update to match text_secondary -->
+    <color name="gray_light">#F1F3F9</color> <!-- Update to match colorSurfaceDark -->
 </resources>

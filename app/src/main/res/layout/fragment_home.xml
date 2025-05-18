@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_gradient_light">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
@@ -20,6 +21,7 @@
             android:layout_width="120dp"
             android:layout_height="40dp"
             android:layout_gravity="center"
+            android:src="@drawable/logo_flatter"
             android:contentDescription="@string/app_logo" />
 
     </androidx.appcompat.widget.Toolbar>
@@ -30,8 +32,8 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_margin="16dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="4dp"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="8dp"
         app:layout_constraintBottom_toTopOf="@+id/llButtons"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -63,9 +65,9 @@
                     android:id="@+id/dotsIndicator"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_indicator"
                     android:orientation="horizontal"
-                    android:padding="8dp" />
+                    android:padding="8dp"
+                    android:background="@drawable/bg_indicator" />
             </FrameLayout>
 
             <de.hdodenhof.circleimageview.CircleImageView
@@ -87,7 +89,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:layout_marginEnd="16dp"
-                android:background="@color/colorAccent"
+                android:background="@drawable/bg_price_tag"
                 android:elevation="10dp"
                 android:paddingStart="12dp"
                 android:paddingTop="6dp"
@@ -110,6 +112,7 @@
             <androidx.core.widget.NestedScrollView
                 android:layout_width="0dp"
                 android:layout_height="0dp"
+                android:background="@drawable/bg_glass_effect"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -119,32 +122,33 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="24dp">
 
                     <TextView
                         android:id="@+id/tvTitle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/black"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium"
+                        android:textColor="@color/text_primary"
+                        android:textSize="20sp"
                         tools:text="Habitación luminosa en Barcelona" />
 
                     <TextView
                         android:id="@+id/tvLocation"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:drawablePadding="4dp"
-                        android:textColor="@color/gray_dark"
+                        android:layout_marginTop="8dp"
+                        android:drawablePadding="8dp"
+                        android:textColor="@color/text_secondary"
                         android:textSize="14sp"
                         app:drawableStartCompat="@drawable/ic_location_img"
+                        app:drawableTint="@color/colorPrimary"
                         tools:text="Eixample, Barcelona" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="16dp"
                         android:orientation="horizontal">
 
                         <TextView
@@ -152,10 +156,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
-                            android:drawablePadding="4dp"
-                            android:textColor="@color/gray_dark"
+                            android:drawablePadding="8dp"
+                            android:textColor="@color/text_secondary"
                             android:textSize="14sp"
                             app:drawableStartCompat="@drawable/ic_bed_img"
+                            app:drawableTint="@color/colorAccent"
                             tools:text="3 hab." />
 
                         <TextView
@@ -163,58 +168,77 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
-                            android:drawablePadding="4dp"
-                            android:textColor="@color/gray_dark"
+                            android:drawablePadding="8dp"
+                            android:textColor="@color/text_secondary"
                             android:textSize="14sp"
                             app:drawableStartCompat="@drawable/ic_bathroom_img"
+                            app:drawableTint="@color/colorAccent"
                             tools:text="2 baños" />
 
                         <TextView
                             android:id="@+id/tvArea"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:drawablePadding="4dp"
-                            android:textColor="@color/gray_dark"
+                            android:drawablePadding="8dp"
+                            android:textColor="@color/text_secondary"
                             android:textSize="14sp"
                             app:drawableStartCompat="@drawable/ic_area_img"
+                            app:drawableTint="@color/colorAccent"
                             tools:text="90 m²" />
                     </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="16dp"
                         android:background="@color/gray_light" />
 
                     <TextView
                         android:id="@+id/tvDescription"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/gray_dark"
+                        android:textColor="@color/text_secondary"
                         android:textSize="14sp"
-                        tools:text="Amplia habitación en piso compartido con excelente ubicación." />
+                        tools:text="Amplia habitación en piso compartido con excelente ubicación. Cerca de transporte público, supermercados y parques. El piso cuenta con cocina equipada, lavadora y fibra óptica. Se busca persona responsable, limpia y respetuosa." />
 
-                    <TextView
-                        android:id="@+id/tvUserName"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:drawablePadding="4dp"
-                        android:textColor="@color/gray_dark"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        tools:text="Publicado por: Ana García" />
+                        android:layout_marginTop="16dp"
+                        android:orientation="horizontal">
 
-                    <TextView
-                        android:id="@+id/tvPublishedDate"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:drawablePadding="4dp"
-                        android:textColor="@color/gray_dark"
-                        android:textSize="14sp"
-                        tools:text="Publicado: 15 de abril de 2025" />
+                        <de.hdodenhof.circleimageview.CircleImageView
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:src="@drawable/default_profile_img"
+                            app:civ_border_color="@color/colorPrimaryDark"
+                            app:civ_border_width="1dp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvUserName"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                tools:text="Publicado por: Ana García" />
+
+                            <TextView
+                                android:id="@+id/tvPublishedDate"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/text_hint"
+                                android:textSize="12sp"
+                                tools:text="Publicado: 15 de abril de 2025" />
+                        </LinearLayout>
+                    </LinearLayout>
                 </LinearLayout>
             </androidx.core.widget.NestedScrollView>
         </androidx.constraintlayout.widget.ConstraintLayout>
@@ -235,7 +259,7 @@
         android:id="@+id/llButtons"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="24dp"
         android:gravity="center"
         android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -244,25 +268,30 @@
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnReject"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="32dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginEnd="48dp"
             android:contentDescription="@string/rechazar"
-            app:backgroundTint="@color/colorReject"
-            app:srcCompat="@drawable/ic_close_img"
-            app:tint="@color/white" />
+            app:backgroundTint="@color/white"
+            style="@style/Widget.Flatter.Button"
+            app:elevation="4dp"
+            app:fabCustomSize="64dp"
+            app:maxImageSize="32dp"
+            app:srcCompat="@drawable/ic_close"
+            app:tint="@color/colorError" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnAccept"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginStart="48dp"
             android:contentDescription="@string/aceptar"
-            app:backgroundTint="@color/colorAccept"
+            app:backgroundTint="@color/white"
+            style="@style/Widget.Flatter.Button"
+            app:elevation="4dp"
+            app:fabCustomSize="64dp"
+            app:maxImageSize="32dp"
             app:srcCompat="@drawable/ic_check_img"
-            app:tint="@color/white" />
-
-
+            app:tint="@color/colorSuccess" />
     </LinearLayout>
-
 </androidx.constraintlayout.widget.ConstraintLayout>
