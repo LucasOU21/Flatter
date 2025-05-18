@@ -13,13 +13,25 @@
         android:theme="@style/Theme.Flatter"
         tools:targetApi="31">
         <activity
+            android:name=".listingVista.ListingAnalyticsActivity"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
+            android:exported="false" />
+
+        <activity
+            android:name=".listingVista.DeleteListingsActivity"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
+            android:exported="false" />
+        <activity
             android:name=".listingVista.CreateListingActivity"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
             android:exported="false" />
         <activity
             android:name=".registerVista.RegisterActivity"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
             android:exported="false" />
         <activity
             android:name=".loginVista.LoginActivity"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -29,6 +41,7 @@
         </activity>
         <activity
             android:name=".homeVista.HomeActivity"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
             android:exported="false" />
     </application>
 

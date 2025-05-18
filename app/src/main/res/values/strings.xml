@@ -1,6 +1,15 @@
 <resources>
+    <!-- App Name -->
     <string name="app_name">Flatter</string>
     <string name="app_logo">Logo de Flatter</string>
+
+    <!-- Bottom Navigation -->
+    <string name="chats">Chats</string>
+    <string name="home">Inicio</string>
+    <string name="profile">Perfil</string>
+    <string name="manage">Gestionar</string>
+
+    <!-- Home Screen -->
     <string name="rechazar">Rechazar</string>
     <string name="aceptar">Aceptar</string>
     <string name="imagen_del_listado">Imagen del listado</string>
@@ -10,22 +19,9 @@
     <string name="publicado_fecha">Publicado: %1$s</string>
     <string name="no_more_listings">No hay más listados disponibles</string>
     <string name="loading_more">Buscando más propiedades...</string>
-    <string name="sign_out">Cerrar sesión</string>
+    <string name="no_listings_available">No hay listados disponibles</string>
 
-    <plurals name="bedroom_count">
-        <item quantity="one">%d hab.</item>
-        <item quantity="other">%d hab.</item>
-    </plurals>
-
-    <plurals name="bathroom_count">
-        <item quantity="one">%d baño</item>
-        <item quantity="other">%d baños</item>
-    </plurals>
-
-    <!-- PERFIL -->
-    <string name="profile">Perfil</string>
-    <string name="chats">Chats</string>
-    <string name="home">Inicio</string>
+    <!-- Profile -->
     <string name="edit_photo">Cambiar foto</string>
     <string name="full_name">Nombre completo</string>
     <string name="email">Correo electrónico</string>
@@ -34,10 +30,20 @@
     <string name="preferences">Preferencias</string>
     <string name="max_budget">Presupuesto máximo</string>
     <string name="save_changes">Guardar cambios</string>
+    <string name="sign_out">Cerrar sesión</string>
     <string name="no_chats_yet">Aún no tienes chats</string>
-    <string name="no_listings_available">No hay listados disponibles</string>
 
-    <!-- LOGIN y REGISTRO -->
+    <!-- Plurals for counts -->
+    <plurals name="bedroom_count">
+        <item quantity="one">%d hab.</item>
+        <item quantity="other">%d hab.</item>
+    </plurals>
+    <plurals name="bathroom_count">
+        <item quantity="one">%d baño</item>
+        <item quantity="other">%d baños</item>
+    </plurals>
+
+    <!-- Login & Registration -->
     <string name="login_title">Inicia sesión en Flatter</string>
     <string name="register_title">Únete a Flatter</string>
     <string name="username_hint">Nombre de usuario</string>
@@ -52,8 +58,14 @@
     <string name="user_type_label">¿Qué tipo de usuario eres?</string>
     <string name="renter_option">Inquilino</string>
     <string name="owner_option">Propietario</string>
+    <string name="reset_password_sent">Se ha enviado un correo para restablecer tu contraseña</string>
+    <string name="reset_password_failed">Error al enviar el correo de restablecimiento</string>
+    <string name="reset_password_title">Restablecer contraseña</string>
+    <string name="enter_email">Introduce tu correo electrónico</string>
+    <string name="send">Enviar</string>
+    <string name="cancel">Cancelar</string>
 
-    <!-- MENSAJES DE ERROR/ÉXITO -->
+    <!-- Form Validation -->
     <string name="required_field">Campo obligatorio</string>
     <string name="invalid_email">Email no válido</string>
     <string name="invalid_phone">Número de teléfono no válido</string>
@@ -64,16 +76,67 @@
     <string name="error_registration">Error en el registro: %1$s</string>
     <string name="fill_all_fields">Por favor, completa todos los campos obligatorios</string>
 
-    <!-- FUERZA DE CONTRASEÑA -->
+    <!-- Password Strength -->
     <string name="password_strength_weak">Débil</string>
     <string name="password_strength_medium">Media</string>
     <string name="password_strength_strong">Fuerte</string>
     <string name="password_strength_very_strong">Muy fuerte</string>
     <string name="password_strength_title">Fuerza de la contraseña:</string>
 
-    <!-- CREAR LISTING -->
+    <!-- Listing Management -->
+    <string name="manage_listings">Gestionar anuncios</string>
+    <string name="create_listing">Crear anuncio</string>
+    <string name="analytics">Estadísticas</string>
+    <string name="delete_listings">Eliminar anuncios</string>
+    <string name="create_description">Publica un nuevo anuncio de vivienda o habitación</string>
+    <string name="analytics_description">Ver estadísticas y activar/desactivar anuncios</string>
+    <string name="delete_description">Eliminar anuncios permanentemente</string>
+    <string name="limit_reached_title">Límite alcanzado</string>
+    <string name="limit_reached_message">Has alcanzado el límite de 3 anuncios activos. Para crear uno nuevo, debes eliminar o desactivar un anuncio existente.</string>
+    <string name="understood">Entendido</string>
+    <string name="login_required">Debes iniciar sesión para gestionar anuncios</string>
+
+    <!-- Listing Analytics -->
+    <string name="listing_analytics_title">Estadísticas de anuncios</string>
+    <string name="status">Estado:</string>
+    <string name="active">Activo</string>
+    <string name="inactive">Inactivo</string>
+    <string name="likes">Likes</string>
+    <string name="views">Vistas</string>
+    <string name="no_listings">No tienes anuncios publicados</string>
+    <string name="previous">Anterior</string>
+    <string name="next">Siguiente</string>
+    <string name="listing_page_info">Anuncio %1$d de %2$d</string>
+
+    <!-- Listing Deletion -->
+    <string name="delete_listing_title">Eliminar anuncios</string>
+    <string name="delete">Eliminar</string>
+    <string name="confirm_deletion_title">Confirmar eliminación</string>
+    <string name="confirm_deletion_message">¿Estás seguro de que quieres eliminar este anuncio? Esta acción no se puede deshacer.</string>
+    <string name="listing_deleted">Anuncio eliminado</string>
+    <string name="listing_deleted_message">El anuncio ha sido eliminado correctamente.</string>
+    <string name="error_deleting">Error al eliminar: %1$s</string>
+    <string name="listing_image">Imagen del anuncio</string>
+
+    <!-- Create Listing -->
     <string name="create">Crear</string>
     <string name="photos_selected">fotos seleccionadas</string>
-
-
+    <string name="title_hint">Título del anuncio</string>
+    <string name="price_hint">Precio (€/mes)</string>
+    <string name="bedrooms_hint">Habitaciones</string>
+    <string name="bathrooms_hint">Baños</string>
+    <string name="area_hint">Superficie (m²)</string>
+    <string name="property_type">Tipo de propiedad</string>
+    <string name="apartment">Apartamento completo</string>
+    <string name="room">Habitación en piso compartido</string>
+    <string name="house">Casa/Chalet</string>
+    <string name="district">Distrito</string>
+    <string name="photos">Fotos</string>
+    <string name="add_photos">Añadir fotos</string>
+    <string name="description_hint">Descripción</string>
+    <string name="publish_listing">Publicar anuncio</string>
+    <string name="publishing">Publicando anuncio...</string>
+    <string name="publication_success">¡Anuncio publicado con éxito!</string>
+    <string name="publication_error">Error al publicar: %1$s</string>
+    <string name="min_photos_required">Añade al menos una foto</string>
 </resources>

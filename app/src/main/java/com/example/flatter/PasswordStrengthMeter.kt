@@ -54,10 +54,6 @@ class PasswordStrengthMeter @JvmOverloads constructor(
         paint.isAntiAlias = true
     }
 
-    /**
-     * Establece la fuerza de la contraseña
-     * @param strength El nivel de fuerza (0-3)
-     */
     fun setStrength(strength: Int) {
         currentStrength = strength
         currentProgress = when (strength) {

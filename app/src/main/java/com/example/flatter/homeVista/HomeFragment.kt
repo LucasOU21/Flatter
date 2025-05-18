@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.example.flatter.R
 import com.example.flatter.databinding.FragmentHomeBinding
+import com.example.flatter.listingVista.ListingManager
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import java.text.NumberFormat
@@ -36,12 +37,14 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Configure buttons
+        //Configure buttons
         setupButtons()
 
-        // Load listings from Firebase
+        //Load listings from Firebase
         loadListingsFromFirebase()
+
     }
+
 
     private fun setupButtons() {
         // Reject button
@@ -158,7 +161,11 @@ class HomeFragment : Fragment() {
                 showLoading(false)
             }
             .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error al cargar listados: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    "Error al cargar listados: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
                 showLoading(false)
                 showNoListingsMessage()
             }
@@ -220,7 +227,8 @@ class HomeFragment : Fragment() {
         setupDotsIndicator(imageUrls.size)
 
         // Handle page changes
-        binding.viewPagerImages.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+        binding.viewPagerImages.registerOnPageChangeCallback(object :
+            androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
                 updateDotsIndicator(position)
@@ -276,13 +284,21 @@ class HomeFragment : Fragment() {
                 // Success, already handled in UI
             }
             .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error al guardar like: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    "Error al guardar like: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
     }
 
     private fun showNoMoreListingsMessage() {
         binding.cardListing.visibility = View.INVISIBLE
-        Toast.makeText(requireContext(), getString(R.string.no_listings_available), Toast.LENGTH_LONG).show()
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.no_listings_available),
+            Toast.LENGTH_LONG
+        ).show()
 
         // Optional: fetch more listings
         loadMoreListings()
@@ -290,7 +306,11 @@ class HomeFragment : Fragment() {
 
     private fun showNoListingsMessage() {
         binding.cardListing.visibility = View.INVISIBLE
-        Toast.makeText(requireContext(), getString(R.string.no_listings_available), Toast.LENGTH_LONG).show()
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.no_listings_available),
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun loadMoreListings() {

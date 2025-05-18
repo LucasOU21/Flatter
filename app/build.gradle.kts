@@ -86,9 +86,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
 
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation(platform(libs.firebase.bom.v3271))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
 
     //PAGINA MAIN
     //glide para carga de imágenes
@@ -102,6 +103,11 @@ dependencies {
     implementation (libs.androidx.viewpager2)
 
     implementation (libs.material.v150)
+
+    //BarChart PhilJay
+    implementation(libs.mpandroidchart)
+
+    implementation("com.google.android.material:material:1.8.0")
 
 
 

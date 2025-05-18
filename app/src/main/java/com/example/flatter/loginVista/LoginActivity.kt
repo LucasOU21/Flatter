@@ -13,6 +13,9 @@ import com.example.flatter.registerVista.RegisterActivity
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import android.app.AlertDialog
+import android.text.InputType
+import android.widget.EditText
 
 class LoginActivity : AppCompatActivity() {
 
@@ -61,10 +64,84 @@ class LoginActivity : AppCompatActivity() {
         }
 
         // Redirigir a Registro
-             tvRegister.setOnClickListener {
-             startActivity(Intent(this, RegisterActivity::class.java))
+        tvRegister.setOnClickListener {
+            startActivity(Intent(this, RegisterActivity::class.java))
+        }
+
+        // Setup forgot password
+        setupForgotPassword()
+    }
+
+
+    //In LoginActivity.kt, add handling for the forgot password TextView
+    private fun setupForgotPassword() {
+        val tvForgotPassword = findViewById<TextView>(R.id.tvForgotPassword)
+
+        tvForgotPassword.setOnClickListener {
+            showForgotPasswordDialog()
         }
     }
+
+    //Add a dialog to get the user's email address
+    private fun showForgotPasswordDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Restablecer contraseña")
+
+        //Set up the input field
+        val input = EditText(this)
+        input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        input.hint = "Correo electrónico"
+
+        //Pre-fill with the email if already entered in the login form
+        val loginEmail = findViewById<TextInputEditText>(R.id.etEmail).text.toString().trim()
+        if (loginEmail.isNotEmpty()) {
+            input.setText(loginEmail)
+        }
+
+        builder.setView(input)
+
+        // Set up the buttons
+        builder.setPositiveButton("Enviar") { dialog, _ ->
+            val email = input.text.toString().trim()
+            if (email.isNotEmpty()) {
+                sendPasswordResetEmail(email)
+            } else {
+                Toast.makeText(this, "Por favor, introduce tu correo electrónico", Toast.LENGTH_SHORT).show()
+            }
+            dialog.dismiss()
+        }
+
+        builder.setNegativeButton("Cancelar") { dialog, _ ->
+            dialog.cancel()
+        }
+
+        builder.show()
+    }
+
+    //Send the password reset email using Firebase Auth
+    private fun sendPasswordResetEmail(email: String) {
+        findViewById<ProgressBar>(R.id.progressBar).visibility = ProgressBar.VISIBLE
+
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                findViewById<ProgressBar>(R.id.progressBar).visibility = ProgressBar.GONE
+
+                if (task.isSuccessful) {
+                    Toast.makeText(
+                        this,
+                        "Correo de restablecimiento enviado a $email",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        this,
+                        "Error: ${task.exception?.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+    }
+
 
     private fun loginUser(email: String, password: String) {
         findViewById<ProgressBar>(R.id.progressBar).visibility = ProgressBar.VISIBLE
