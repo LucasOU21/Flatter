@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -11,6 +12,7 @@ import com.bumptech.glide.Glide
 import com.example.flatter.R
 import com.example.flatter.databinding.ActivityConversationBinding
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -25,6 +27,10 @@ class ConversationActivity : AppCompatActivity() {
     private var otherUserName: String = ""
     private var otherUserId: String = ""
     private var otherUserProfilePic: String = ""
+    private var listingId: String = ""
+    private var listingTitle: String = ""
+    private var isNewChat: Boolean = false
+    private var isOwner: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,32 +42,34 @@ class ConversationActivity : AppCompatActivity() {
 
         // Get chat details from intent
         chatId = intent.getStringExtra("CHAT_ID") ?: ""
-        otherUserName = intent.getStringExtra("OTHER_USER_NAME") ?: "Chat"
+        otherUserName = intent.getStringExtra("OTHER_USER_NAME") ?: "Usuario"
         otherUserId = intent.getStringExtra("OTHER_USER_ID") ?: ""
         otherUserProfilePic = intent.getStringExtra("OTHER_USER_PROFILE_PIC") ?: ""
+        listingId = intent.getStringExtra("LISTING_ID") ?: ""
+        listingTitle = intent.getStringExtra("LISTING_TITLE") ?: "Anuncio"
+        isNewChat = intent.getBooleanExtra("IS_NEW_CHAT", false)
 
         // Check if we have valid data
         if (chatId.isEmpty() || otherUserId.isEmpty()) {
-            Toast.makeText(this, "Error: Invalid chat", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Error: Chat no válido", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
-        // Set up toolbar
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = otherUserName
+        // Determine if the current user is the owner of the listing
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        isOwner = currentUserId != otherUserId
 
-        // Load other user's profile pic in toolbar
-        Glide.with(this)
-            .load(otherUserProfilePic)
-            .placeholder(R.drawable.default_profile_img)
-            .error(R.drawable.default_profile_img)
-            .circleCrop()
-            .into(binding.ivProfilePic)
+        // Set up toolbar with listing title
+        setupToolbar()
 
         // Set up RecyclerView
         setupRecyclerView()
+
+        // Show chat action options inside the chat
+        if (isNewChat) {
+            showChatActionBanner()
+        }
 
         // Subscribe to message updates
         chatService.getChatMessagesFlow(chatId).onEach { messages ->
@@ -84,6 +92,22 @@ class ConversationActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupToolbar() {
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        // Show listing title in the toolbar
+        supportActionBar?.title = listingTitle
+
+        // Load other user's profile pic in toolbar
+        Glide.with(this)
+            .load(otherUserProfilePic)
+            .placeholder(R.drawable.default_profile_img)
+            .error(R.drawable.default_profile_img)
+            .circleCrop()
+            .into(binding.ivProfilePic)
+    }
+
     private fun setupRecyclerView() {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
@@ -95,6 +119,85 @@ class ConversationActivity : AppCompatActivity() {
             }
             adapter = messageAdapter
         }
+    }
+
+    private fun showChatActionBanner() {
+        // Show action banner based on whether user is owner or requester
+        binding.chatActionBanner.visibility = View.VISIBLE
+
+        if (isOwner) {
+            // Owner sees info about the requester with accept/decline options
+            binding.tvBannerMessage.text = "A $otherUserName le interesa tu anuncio"
+            binding.btnBannerAction1.text = "Aceptar"
+            binding.btnBannerAction2.text = "Rechazar"
+
+            binding.btnBannerAction1.setOnClickListener {
+                // Accept chat request
+                updateChatStatus("accepted")
+                binding.chatActionBanner.visibility = View.GONE
+            }
+
+            binding.btnBannerAction2.setOnClickListener {
+                // Decline chat request
+                updateChatStatus("declined")
+                sendDeclineNotification()
+                finish()
+            }
+        } else {
+            // Requester sees chat info with continue/cancel options
+            binding.tvBannerMessage.text = "Tu solicitud ha sido enviada a $otherUserName"
+            binding.btnBannerAction1.text = "Continuar"
+            binding.btnBannerAction2.text = "Cancelar"
+
+            binding.btnBannerAction1.setOnClickListener {
+                // Continue with chat (just hide the banner)
+                binding.chatActionBanner.visibility = View.GONE
+            }
+
+            binding.btnBannerAction2.setOnClickListener {
+                // Cancel chat request
+                updateChatStatus("cancelled")
+                finish()
+            }
+        }
+    }
+
+    private fun updateChatStatus(status: String) {
+        val db = FirebaseFirestore.getInstance()
+
+        db.collection("chats").document(chatId)
+            .update("status", status)
+            .addOnSuccessListener {
+                if (status != "accepted") {
+                    val statusMessage = when(status) {
+                        "declined" -> "Chat rechazado"
+                        "cancelled" -> "Chat cancelado"
+                        else -> "Estado actualizado"
+                    }
+                    Toast.makeText(this, statusMessage, Toast.LENGTH_SHORT).show()
+                }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error al actualizar estado: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun sendDeclineNotification() {
+        // Create a notification to let the requester know their chat was declined
+        val db = FirebaseFirestore.getInstance()
+        val notification = hashMapOf(
+            "userId" to otherUserId,
+            "title" to "Solicitud de chat rechazada",
+            "message" to "Tu solicitud de chat para \"$listingTitle\" ha sido rechazada por el propietario",
+            "timestamp" to com.google.firebase.Timestamp.now(),
+            "read" to false,
+            "type" to "chat_declined"
+        )
+
+        db.collection("notifications").add(notification)
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error al enviar notificación: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun sendMessage() {
@@ -119,7 +222,7 @@ class ConversationActivity : AppCompatActivity() {
             if (!success) {
                 Toast.makeText(
                     this@ConversationActivity,
-                    "Error sending message",
+                    "Error al enviar mensaje",
                     Toast.LENGTH_SHORT
                 ).show()
             }

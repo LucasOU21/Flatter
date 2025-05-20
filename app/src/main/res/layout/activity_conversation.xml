@@ -37,6 +37,14 @@
 
     </androidx.appcompat.widget.Toolbar>
 
+    <!-- Chat Action Banner -->
+    <include
+        android:id="@+id/chatActionBanner"
+        layout="@layout/chat_action_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/toolbar" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvMessages"
         android:layout_width="match_parent"
@@ -44,7 +52,7 @@
         android:clipToPadding="false"
         android:padding="8dp"
         app:layout_constraintBottom_toTopOf="@id/layoutInput"
-        app:layout_constraintTop_toBottomOf="@id/toolbar" />
+        app:layout_constraintTop_toBottomOf="@id/chatActionBanner" />
 
     <LinearLayout
         android:id="@+id/layoutInput"
@@ -62,7 +70,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="@drawable/bg_message_input"
-            android:hint="Type a message"
+            android:hint="Enviar mensaje"
             android:inputType="textMultiLine"
             android:maxLines="4"
             android:minHeight="40dp"

@@ -6,10 +6,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.flatter.R
+import com.example.flatter.chatVista.ContactDialog
 import com.example.flatter.databinding.FragmentHomeBinding
 import com.example.flatter.listingVista.ListingManager
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import java.text.NumberFormat
@@ -24,6 +27,7 @@ class HomeFragment : Fragment() {
     private var currentListingIndex = 0
     private var listings = mutableListOf<ListingModel>()
     private val db = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -42,9 +46,7 @@ class HomeFragment : Fragment() {
 
         //Load listings from Firebase
         loadListingsFromFirebase()
-
     }
-
 
     private fun setupButtons() {
         // Reject button
@@ -67,27 +69,44 @@ class HomeFragment : Fragment() {
             if (listings.isNotEmpty() && currentListingIndex < listings.size) {
                 val currentListing = listings[currentListingIndex]
 
+                // Check if user is logged in
+                if (auth.currentUser == null) {
+                    Toast.makeText(
+                        requireContext(),
+                        "Debes iniciar sesión para contactar",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setOnClickListener
+                }
+
                 // Save this listing as "liked" in Firestore
                 saveLikedListing(currentListing.id)
 
-                // Show match message
-                Toast.makeText(
-                    requireContext(),
-                    "¡Coincidencia! Ponte en contacto con ${currentListing.userName}",
-                    Toast.LENGTH_SHORT
-                ).show()
-
-                // Move to next listing
-                currentListingIndex++
-
-                if (currentListingIndex < listings.size) {
-                    displayCurrentListing()
-                } else {
-                    // No more listings, show message
-                    showNoMoreListingsMessage()
-                }
+                // Show contact dialog
+                showContactDialog(currentListing)
             }
         }
+    }
+
+    private fun showContactDialog(listing: ListingModel) {
+        // Create and show contact dialog
+        val dialog = ContactDialog(
+            requireContext(),
+            listing,
+            viewLifecycleOwner.lifecycleScope
+        ) {
+            // Navigate to Chats fragment when message is sent
+            navigateToChatsFragment()
+        }
+        dialog.show()
+    }
+
+    private fun navigateToChatsFragment() {
+        // Navigate to Chats fragment using Bottom Navigation
+        val bottomNavigation = requireActivity().findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(
+            R.id.bottom_navigation
+        )
+        bottomNavigation.selectedItemId = R.id.navigation_chats
     }
 
     private fun loadListingsFromFirebase() {
@@ -96,11 +115,20 @@ class HomeFragment : Fragment() {
         // Clear existing listings
         listings.clear()
 
+        // Get current user ID
+        val currentUserId = auth.currentUser?.uid
+
         // Query Firestore for listings
-        db.collection("listings")
+        val query = db.collection("listings")
             .orderBy("createdAt", Query.Direction.DESCENDING) // Most recent first
             .limit(20) // Limit to 20 listings for performance
-            .get()
+
+        // If user is logged in, exclude their own listings
+        if (currentUserId != null) {
+            query.whereNotEqualTo("userId", currentUserId)
+        }
+
+        query.get()
             .addOnSuccessListener { documents ->
                 if (documents.isEmpty) {
                     showNoListingsMessage()
@@ -127,23 +155,26 @@ class HomeFragment : Fragment() {
                         val userProfileImageUrl = document.getString("userProfileImageUrl") ?: ""
                         val publishedDate = document.getString("publishedDate") ?: ""
 
-                        val listing = ListingModel(
-                            id = id,
-                            title = title,
-                            description = description,
-                            price = price,
-                            location = location,
-                            bedrooms = bedrooms,
-                            bathrooms = bathrooms,
-                            area = area,
-                            imageUrls = imagesList,
-                            userId = userId,
-                            userName = userName,
-                            userProfileImageUrl = userProfileImageUrl,
-                            publishedDate = publishedDate
-                        )
+                        // Double-check that this listing isn't from the current user
+                        if (userId != currentUserId) {
+                            val listing = ListingModel(
+                                id = id,
+                                title = title,
+                                description = description,
+                                price = price,
+                                location = location,
+                                bedrooms = bedrooms,
+                                bathrooms = bathrooms,
+                                area = area,
+                                imageUrls = imagesList,
+                                userId = userId,
+                                userName = userName,
+                                userProfileImageUrl = userProfileImageUrl,
+                                publishedDate = publishedDate
+                            )
 
-                        listings.add(listing)
+                            listings.add(listing)
+                        }
                     } catch (e: Exception) {
                         // Skip any malformed documents
                         continue
@@ -281,7 +312,7 @@ class HomeFragment : Fragment() {
         db.collection("likes")
             .add(likeData)
             .addOnSuccessListener {
-                // Success, already handled in UI
+                // Success, handled in showContactDialog()
             }
             .addOnFailureListener { e ->
                 Toast.makeText(

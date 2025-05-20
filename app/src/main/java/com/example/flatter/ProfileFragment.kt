@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.example.flatter.databinding.FragmentProfileBinding
+import com.example.flatter.loginVista.LoginActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
@@ -209,24 +210,35 @@ class ProfileFragment : Fragment() {
     }
 
     private fun uploadProfileImage(userId: String, onSuccess: (String) -> Unit) {
+        // Create a reference to the user's profile image in Firebase Storage
         val imageRef = storage.reference.child("profile_images/$userId.jpg")
 
         profileImageUri?.let { uri ->
+            // Show progress indicator
+            binding.progressBar.visibility = View.VISIBLE
+
+            // Upload the image to Firebase Storage
             imageRef.putFile(uri)
                 .addOnSuccessListener {
-                    // Get download URL
+                    // Get download URL after successful upload
                     imageRef.downloadUrl
                         .addOnSuccessListener { downloadUri ->
+                            // Call the onSuccess callback with the download URL
                             onSuccess(downloadUri.toString())
                         }
                         .addOnFailureListener { e ->
-                            Toast.makeText(requireContext(), "Error al obtener URL de imagen: ${e.message}", Toast.LENGTH_SHORT).show()
                             showLoading(false)
+                            Toast.makeText(requireContext(), "Error al obtener URL de imagen: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
                 }
                 .addOnFailureListener { e ->
-                    Toast.makeText(requireContext(), "Error al subir imagen: ${e.message}", Toast.LENGTH_SHORT).show()
                     showLoading(false)
+                    Toast.makeText(requireContext(), "Error al subir imagen: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+                .addOnProgressListener { taskSnapshot ->
+                    // You can add progress updates here if needed
+                    val progress = (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount)
+                    // You could update a progress bar with this value
                 }
         }
     }
@@ -263,6 +275,10 @@ class ProfileFragment : Fragment() {
             .update(userUpdates as Map<String, Any>)
             .addOnSuccessListener {
                 Toast.makeText(requireContext(), "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
+
+                // Reset the profile image URI since we've processed it
+                profileImageUri = null
+
                 showLoading(false)
             }
             .addOnFailureListener { e ->
@@ -278,7 +294,7 @@ class ProfileFragment : Fragment() {
 
     private fun navigateToLogin() {
         // Import the correct LoginActivity class based on your package structure
-        val intent = Intent(requireContext(), com.example.flatter.loginVista.LoginActivity::class.java)
+        val intent = Intent(requireContext(), LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         requireActivity().finish()
