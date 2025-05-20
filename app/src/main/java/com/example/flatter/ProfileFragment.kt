@@ -28,12 +28,26 @@ class ProfileFragment : Fragment() {
 
     private var profileImageUri: Uri? = null
 
-    // Register image picker activity
+    //Register image picker activity with improved implementation
     private val pickImage = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
-                profileImageUri = uri
-                binding.ivProfilePicture.setImageURI(uri)
+                try {
+                    //Update the displayed image immediately
+                    profileImageUri = uri
+
+                    //Use Glide for better image loading and error handling
+                    Glide.with(requireContext())
+                        .load(uri)
+                        .placeholder(R.drawable.default_profile_img)
+                        .error(R.drawable.default_profile_img)
+                        .into(binding.ivProfilePicture)
+
+                    //The actual upload happens when the user clicks Save
+                    Toast.makeText(requireContext(), "Image selected, click Save to update your profile", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(requireContext(), "Error displaying image: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -50,7 +64,7 @@ class ProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialize Firebase
+        //Initialize Firebase
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
         storage = FirebaseStorage.getInstance()
@@ -65,8 +79,19 @@ class ProfileFragment : Fragment() {
     private fun setupListeners() {
         // Image edit listener
         binding.tvEditPhoto.setOnClickListener {
-            val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            pickImage.launch(galleryIntent)
+            try {
+                // Create the gallery intent
+                val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+
+                // Make sure the device can handle this intent
+                if (galleryIntent.resolveActivity(requireActivity().packageManager) != null) {
+                    pickImage.launch(galleryIntent)
+                } else {
+                    Toast.makeText(requireContext(), "No gallery app found", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Error opening gallery: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
 
         // Save button listener

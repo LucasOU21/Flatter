@@ -25,33 +25,48 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Inicializar Firebase Auth y Firestore
+        // Initialize Firebase Auth and Firestore
         auth = FirebaseAuth.getInstance()
-        auth.signOut()
         db = FirebaseFirestore.getInstance()
 
-        // Comprobar si ya hay un usuario conectado
+        // Check if a user is already logged in
         val currentUser = auth.currentUser
         if (currentUser != null) {
-            // Verificar si el usuario existe en Firestore
+            // Verify that the user exists in Firestore
             db.collection("users").document(currentUser.uid).get()
                 .addOnSuccessListener { document ->
                     if (document.exists()) {
-                        // El usuario existe, redirigir a HomeActivity
+                        // User exists, redirect to HomeActivity
                         startActivity(Intent(this, HomeActivity::class.java))
                         finish()
+                    } else {
+                        // User doesn't exist in Firestore, sign them out
+                        auth.signOut()
+                        setContentView(R.layout.activity_login)
+                        setupViews()
                     }
                 }
+                .addOnFailureListener {
+                    // Error checking user, sign them out to be safe
+                    auth.signOut()
+                    setContentView(R.layout.activity_login)
+                    setupViews()
+                }
+        } else {
+            // No user is signed in, show login screen
+            setContentView(R.layout.activity_login)
+            setupViews()
         }
+    }
 
-        setContentView(R.layout.activity_login)
-
+    // Add this method to LoginActivity.kt
+    private fun setupViews() {
         val etEmail = findViewById<TextInputEditText>(R.id.etEmail)
         val etPassword = findViewById<TextInputEditText>(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
         val tvRegister = findViewById<TextView>(R.id.tvRegister)
 
-        // Botón de Login
+        // Login button
         btnLogin.setOnClickListener {
             val email = etEmail.text.toString().trim()
             val password = etPassword.text.toString().trim()
@@ -63,7 +78,7 @@ class LoginActivity : AppCompatActivity() {
             }
         }
 
-        // Redirigir a Registro
+        // Redirect to Registration
         tvRegister.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
         }

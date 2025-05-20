@@ -179,14 +179,15 @@ class RegisterActivity : AppCompatActivity() {
             }
     }
 
+    // In RegisterActivity.kt, replace the saveUserDataToFirestore() method with:
     private fun saveUserDataToFirestore(userId: String) {
-        // Obtener los datos del formulario
+        // Obtain the data from the form
         val username = binding.etUsername.text.toString().trim()
         val email = binding.etEmail.text.toString().trim()
         val phone = binding.etPhone.text.toString().trim()
         val userType = if (binding.rbRenter.isChecked) "inquilino" else "propietario"
 
-        // Crear objeto de usuario para Firestore
+        // Create user object for Firestore
         val user = hashMapOf(
             "username" to username,
             "fullName" to username, // Add this line to ensure the username is also saved as fullName
@@ -198,18 +199,18 @@ class RegisterActivity : AppCompatActivity() {
             "bio" to ""
         )
 
-        // Guardar en Firestore
+        // Save to Firestore
         db.collection("users").document(userId)
             .set(user)
             .addOnSuccessListener {
                 showProgress(false)
                 Toast.makeText(this, getString(R.string.registration_success), Toast.LENGTH_SHORT).show()
 
-                // Redirigir a HomeActivity
-                val intent = Intent(this, HomeActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                startActivity(intent)
-                finish()
+                // Sign out the user so they have to log in explicitly
+                auth.signOut()
+
+                // Return to LoginActivity
+                finish() // This will go back to the LoginActivity if it's in the back stack
             }
             .addOnFailureListener { e ->
                 showProgress(false)
@@ -220,7 +221,7 @@ class RegisterActivity : AppCompatActivity() {
                 ).show()
                 Log.e(TAG, "Error al guardar datos: $e")
 
-                // Eliminar la cuenta de Auth si falló el guardado en Firestore
+                // Delete the Auth account if Firestore save failed
                 auth.currentUser?.delete()
             }
     }
