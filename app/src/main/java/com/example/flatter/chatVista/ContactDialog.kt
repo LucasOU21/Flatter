@@ -2,6 +2,7 @@ package com.example.flatter.chatVista
 
 import android.app.Dialog
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Window
@@ -24,7 +25,6 @@ class ContactDialog(
 
     private lateinit var binding: DialogContactBinding
     private val chatService = ChatService()
-    private val chatManager = ChatManager(context, lifecycleScope)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,7 +72,12 @@ class ContactDialog(
     private fun setupListeners() {
         // Send button click
         binding.btnSend.setOnClickListener {
-            sendMessage(binding.etMessage.text.toString())
+            val message = binding.etMessage.text.toString().trim()
+            if (message.isNotEmpty()) {
+                sendMessage(message)
+            } else {
+                Toast.makeText(context, "Por favor, escribe un mensaje", Toast.LENGTH_SHORT).show()
+            }
         }
 
         // Quick message 1
@@ -99,6 +104,9 @@ class ContactDialog(
 
         dismiss() // Close dialog
 
+        // Show loading message
+        Toast.makeText(context, "Enviando mensaje...", Toast.LENGTH_SHORT).show()
+
         // Start chat with listing owner
         lifecycleScope.launch {
             try {
@@ -110,13 +118,29 @@ class ContactDialog(
                 )
 
                 // Send the message
-                chatService.sendMessage(chatId, messageText)
+                val success = chatService.sendMessage(chatId, messageText)
 
-                // Navigate to chats fragment
-                onMessageSent()
+                if (success) {
+                    // Show success message
+                    Toast.makeText(context, "Mensaje enviado con éxito", Toast.LENGTH_SHORT).show()
 
-                // Show success message
-                Toast.makeText(context, "Mensaje enviado con éxito", Toast.LENGTH_SHORT).show()
+                    // Open conversation immediately
+                    val intent = Intent(context, ConversationActivity::class.java).apply {
+                        putExtra("CHAT_ID", chatId)
+                        putExtra("OTHER_USER_NAME", listing.userName)
+                        putExtra("OTHER_USER_ID", listing.userId)
+                        putExtra("OTHER_USER_PROFILE_PIC", listing.userProfileImageUrl)
+                        putExtra("LISTING_ID", listing.id)
+                        putExtra("LISTING_TITLE", listing.title)
+                        putExtra("IS_NEW_CHAT", true)
+                    }
+                    context.startActivity(intent)
+
+                    // Navigate to chats fragment
+                    onMessageSent()
+                } else {
+                    Toast.makeText(context, "Error al enviar mensaje. Inténtalo de nuevo.", Toast.LENGTH_SHORT).show()
+                }
             } catch (e: Exception) {
                 Toast.makeText(context, "Error al enviar mensaje: ${e.message}", Toast.LENGTH_SHORT).show()
             }

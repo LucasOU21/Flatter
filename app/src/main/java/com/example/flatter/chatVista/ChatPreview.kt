@@ -8,6 +8,7 @@ data class ChatPreview(
     val unreadCount: Int = 0,
     val lastMessage: String = "",
     val lastMessageTimestamp: com.google.firebase.Timestamp = com.google.firebase.Timestamp.now(),
-    val listingId: String = "",  // Added listing ID
-    val listingTitle: String = "" // Added listing title
+    val listingId: String = "",  // Listing ID
+    val listingTitle: String = "", // Listing title
+    val status: String = "pending" // Chat status (pending, accepted, declined, cancelled)
 )

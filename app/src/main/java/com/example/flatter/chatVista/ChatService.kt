@@ -2,7 +2,6 @@ package com.example.flatter.chatVista
 
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
@@ -23,63 +22,95 @@ class ChatService {
     ): String {
         val currentUserId = auth.currentUser?.uid ?: throw IllegalStateException("User not logged in")
 
-        // Sort user IDs to ensure consistent chat ID generation
-        val userIds = listOf(currentUserId, otherUserId).sorted()
-        val chatId = userIds.joinToString("_")
+        try {
+            // Sort user IDs to ensure consistent chat ID generation
+            val userIds = listOf(currentUserId, otherUserId).sorted()
+            val chatId = userIds.joinToString("_")
 
-        val chatRef = db.collection("chats").document(chatId)
-        val chatDoc = chatRef.get().await()
+            // Check if chat already exists
+            val chatRef = db.collection("chats").document(chatId)
+            val chatDoc = chatRef.get().await()
 
-        if (!chatDoc.exists()) {
-            // Create new chat with listing information
-            val chatData: Map<String, Any> = mapOf(
-                "participants" to userIds,
-                "createdAt" to com.google.firebase.Timestamp.now(),
-                "lastMessage" to "",
-                "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
-                "listingId" to listingId,
-                "listingTitle" to listingTitle
-            )
-            chatRef.set(chatData).await()
+            if (!chatDoc.exists()) {
+                Log.d(TAG, "Creating new chat: $chatId between $currentUserId and $otherUserId")
 
-            // Get user data for chat previews
-            val currentUserData = db.collection("users").document(currentUserId).get().await()
-            val otherUserData = db.collection("users").document(otherUserId).get().await()
+                // Get user data for chat previews
+                val currentUserData = db.collection("users").document(currentUserId).get().await()
+                val otherUserData = db.collection("users").document(otherUserId).get().await()
 
-            // Create chat preview for current user with listing info
-            val currentUserChatPreview: Map<String, Any> = mapOf(
-                "chatId" to chatId,
-                "otherUserId" to otherUserId,
-                "otherUserName" to (otherUserData.getString("fullName") ?: "Usuario"),
-                "otherUserProfilePic" to (otherUserData.getString("profileImageUrl") ?: ""),
-                "unreadCount" to 0,
-                "lastMessage" to "",
-                "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
-                "listingId" to listingId,
-                "listingTitle" to listingTitle
-            )
-            db.collection("users").document(currentUserId)
-                .collection("chats").document(chatId)
-                .set(currentUserChatPreview).await()
+                if (!currentUserData.exists() || !otherUserData.exists()) {
+                    Log.e(TAG, "Cannot create chat - one or both users don't exist")
+                    throw IllegalStateException("User data not found")
+                }
 
-            // Create chat preview for other user with listing info
-            val otherUserChatPreview: Map<String, Any> = mapOf(
-                "chatId" to chatId,
-                "otherUserId" to currentUserId,
-                "otherUserName" to (currentUserData.getString("fullName") ?: "Usuario"),
-                "otherUserProfilePic" to (currentUserData.getString("profileImageUrl") ?: ""),
-                "unreadCount" to 0,
-                "lastMessage" to "",
-                "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
-                "listingId" to listingId,
-                "listingTitle" to listingTitle
-            )
-            db.collection("users").document(otherUserId)
-                .collection("chats").document(chatId)
-                .set(otherUserChatPreview).await()
+                // Create new chat with listing information - explicitly use Map<String, Any>
+                val chatData = mapOf<String, Any>(
+                    "participants" to userIds,
+                    "createdAt" to com.google.firebase.Timestamp.now(),
+                    "lastMessage" to "",
+                    "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
+                    "listingId" to listingId,
+                    "listingTitle" to listingTitle,
+                    "status" to "pending"
+                )
+
+                // Use a batch write to ensure all operations succeed or fail together
+                val batch = db.batch()
+
+                // Set the main chat document
+                batch.set(chatRef, chatData)
+
+                // Create chat preview for current user with listing info
+                val currentUserChatRef = db.collection("users").document(currentUserId)
+                    .collection("chats").document(chatId)
+
+                // Explicitly type as Map<String, Any> to avoid type inference issues
+                val currentUserChatPreview = mapOf<String, Any>(
+                    "chatId" to chatId,
+                    "otherUserId" to otherUserId,
+                    "otherUserName" to (otherUserData.getString("fullName") ?: "Usuario"),
+                    "otherUserProfilePic" to (otherUserData.getString("profileImageUrl") ?: ""),
+                    "unreadCount" to 0,
+                    "lastMessage" to "",
+                    "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
+                    "listingId" to listingId,
+                    "listingTitle" to listingTitle,
+                    "status" to "pending"
+                )
+                batch.set(currentUserChatRef, currentUserChatPreview)
+
+                // Create chat preview for other user with listing info
+                val otherUserChatRef = db.collection("users").document(otherUserId)
+                    .collection("chats").document(chatId)
+
+                // Explicitly type as Map<String, Any> to avoid type inference issues
+                val otherUserChatPreview = mapOf<String, Any>(
+                    "chatId" to chatId,
+                    "otherUserId" to currentUserId,
+                    "otherUserName" to (currentUserData.getString("fullName") ?: "Usuario"),
+                    "otherUserProfilePic" to (currentUserData.getString("profileImageUrl") ?: ""),
+                    "unreadCount" to 0,
+                    "lastMessage" to "",
+                    "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
+                    "listingId" to listingId,
+                    "listingTitle" to listingTitle,
+                    "status" to "pending"
+                )
+                batch.set(otherUserChatRef, otherUserChatPreview)
+
+                // Commit the batch
+                batch.commit().await()
+
+                Log.d(TAG, "Successfully created new chat and chat previews")
+            } else {
+                Log.d(TAG, "Chat already exists: $chatId")
+            }
+
+            return chatId
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in getOrCreateChat: ${e.message}", e)
+            throw e
         }
-
-        return chatId
     }
 
     // Function to send a message in a chat
@@ -87,12 +118,60 @@ class ChatService {
         val currentUserId = auth.currentUser?.uid ?: throw IllegalStateException("User not logged in")
 
         try {
+            // Before sending message, make sure chat documents exist for both users
+            val chatDoc = db.collection("chats").document(chatId).get().await()
+
+            if (!chatDoc.exists()) {
+                Log.e(TAG, "Chat doesn't exist: $chatId")
+                return false
+            }
+
+            // Get the participants and other chat data
+            val participants = chatDoc.get("participants") as? List<String> ?: emptyList()
+            val listingId = chatDoc.getString("listingId") ?: ""
+            val listingTitle = chatDoc.getString("listingTitle") ?: ""
+
+            // Ensure both users have chat documents before trying to update them
+            for (userId in participants) {
+                val userChatDocRef = db.collection("users").document(userId)
+                    .collection("chats").document(chatId)
+
+                val userChatDoc = userChatDocRef.get().await()
+
+                if (!userChatDoc.exists()) {
+                    // If the user chat document doesn't exist, create it
+                    // Get other user info (the participant who isn't this user)
+                    val otherUserId = participants.firstOrNull { it != userId } ?: continue
+                    val otherUserDoc = db.collection("users").document(otherUserId).get().await()
+
+                    val otherUserName = otherUserDoc.getString("fullName") ?: "Usuario"
+                    val otherUserProfilePic = otherUserDoc.getString("profileImageUrl") ?: ""
+
+                    // Create chat preview for this user - explicitly type as Map<String, Any>
+                    val chatPreview = mapOf<String, Any>(
+                        "chatId" to chatId,
+                        "otherUserId" to otherUserId,
+                        "otherUserName" to otherUserName,
+                        "otherUserProfilePic" to otherUserProfilePic,
+                        "unreadCount" to 0,
+                        "lastMessage" to "",
+                        "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
+                        "listingId" to listingId,
+                        "listingTitle" to listingTitle,
+                        "status" to (chatDoc.getString("status") ?: "pending")
+                    )
+
+                    userChatDocRef.set(chatPreview).await()
+                    Log.d(TAG, "Created missing chat document for user: $userId")
+                }
+            }
+
             // Create a new message document
             val messageRef = db.collection("chats").document(chatId)
                 .collection("messages").document()
 
-            // FIX: Use Map<String, Any> explicitly
-            val messageData: Map<String, Any> = mapOf(
+            // Use explicit Map<String, Any> type
+            val messageData = mapOf<String, Any>(
                 "id" to messageRef.id,
                 "senderId" to currentUserId,
                 "text" to messageText,
@@ -104,46 +183,88 @@ class ChatService {
             // Add the message
             messageRef.set(messageData).await()
 
-            // Update the chat with last message info - FIX: Use Map<String, Any> explicitly
-            val chatUpdate: Map<String, Any> = mapOf(
+            // Update the chat with last message info - explicitly typed
+            val chatUpdate = mapOf<String, Any>(
                 "lastMessage" to messageText,
                 "lastMessageTimestamp" to com.google.firebase.Timestamp.now()
             )
             db.collection("chats").document(chatId).update(chatUpdate).await()
 
             // Get the other user's ID
-            val chatDoc = db.collection("chats").document(chatId).get().await()
-            val participants = chatDoc.get("participants") as? List<String> ?: emptyList()
             val otherUserId = participants.firstOrNull { it != currentUserId } ?: ""
 
-            // Update chat previews - FIX: Use Map<String, Any> explicitly
-            val chatPreviewUpdate: Map<String, Any> = mapOf(
+            // Update chat previews - explicitly typed
+            val chatPreviewUpdate = mapOf<String, Any>(
                 "lastMessage" to messageText,
                 "lastMessageTimestamp" to com.google.firebase.Timestamp.now()
             )
 
-            // Update current user's chat preview
+            // Update current user's chat preview - using set with merge to ensure it exists
             db.collection("users").document(currentUserId)
                 .collection("chats").document(chatId)
-                .update(chatPreviewUpdate).await()
+                .set(chatPreviewUpdate, com.google.firebase.firestore.SetOptions.merge()).await()
 
             // Update other user's chat preview and increment unread count
             val otherUserChatPreviewRef = db.collection("users").document(otherUserId)
                 .collection("chats").document(chatId)
 
-            db.runTransaction { transaction ->
-                val otherUserChatPreview = transaction.get(otherUserChatPreviewRef)
-                val currentUnreadCount = otherUserChatPreview.getLong("unreadCount") ?: 0
+            val otherUserChatPreview = otherUserChatPreviewRef.get().await()
+            val currentUnreadCount = otherUserChatPreview.getLong("unreadCount") ?: 0
 
-                // FIX: Use explicit updates instead of a map
-                transaction.update(otherUserChatPreviewRef, "lastMessage", messageText)
-                transaction.update(otherUserChatPreviewRef, "lastMessageTimestamp", com.google.firebase.Timestamp.now())
-                transaction.update(otherUserChatPreviewRef, "unreadCount", currentUnreadCount + 1)
-            }.await()
+            // Create a properly typed map for the update
+            val otherUserUpdate = mapOf<String, Any>(
+                "lastMessage" to messageText,
+                "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
+                "unreadCount" to (currentUnreadCount + 1)
+            )
+
+            otherUserChatPreviewRef.set(otherUserUpdate, com.google.firebase.firestore.SetOptions.merge()).await()
 
             return true
         } catch (e: Exception) {
-            Log.e(TAG, "Error sending message: ${e.message}")
+            Log.e(TAG, "Error sending message: ${e.message}", e)
+            return false
+        }
+    }
+
+    // Update chat status (accepted, declined, cancelled)
+    suspend fun updateChatStatus(chatId: String, status: String): Boolean {
+        try {
+            // Update status in main chat document
+            db.collection("chats").document(chatId)
+                .update("status", status).await()
+
+            // Get participants
+            val chatDoc = db.collection("chats").document(chatId).get().await()
+            val participants = chatDoc.get("participants") as? List<String> ?: emptyList()
+
+            // Update status in both participants' chat previews
+            for (userId in participants) {
+                db.collection("users").document(userId)
+                    .collection("chats").document(chatId)
+                    .update("status", status).await()
+            }
+
+            return true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating chat status: ${e.message}", e)
+            return false
+        }
+    }
+
+    // Delete chat for current user
+    suspend fun deleteChat(chatId: String): Boolean {
+        val currentUserId = auth.currentUser?.uid ?: return false
+
+        try {
+            // Remove chat from user's chat list
+            db.collection("users").document(currentUserId)
+                .collection("chats").document(chatId)
+                .delete().await()
+
+            return true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting chat: ${e.message}", e)
             return false
         }
     }
@@ -172,7 +293,7 @@ class ChatService {
                 .collection("chats").document(chatId)
                 .update("unreadCount", 0).await()
         } catch (e: Exception) {
-            Log.e(TAG, "Error marking messages as read: ${e.message}")
+            Log.e(TAG, "Error marking messages as read: ${e.message}", e)
         }
     }
 
@@ -200,7 +321,10 @@ class ChatService {
                             unreadCount = doc.getLong("unreadCount")?.toInt() ?: 0,
                             lastMessage = doc.getString("lastMessage") ?: "",
                             lastMessageTimestamp = doc.getTimestamp("lastMessageTimestamp")
-                                ?: com.google.firebase.Timestamp.now()
+                                ?: com.google.firebase.Timestamp.now(),
+                            listingId = doc.getString("listingId") ?: "",
+                            listingTitle = doc.getString("listingTitle") ?: "",
+                            status = doc.getString("status") ?: "pending" // Include status in flow
                         )
                     } catch (e: Exception) {
                         Log.e(TAG, "Error parsing chat preview: ${e.message}")
@@ -244,6 +368,23 @@ class ChatService {
                 } ?: emptyList()
 
                 trySend(messagesList).isSuccess
+            }
+
+        awaitClose { listenerRegistration.remove() }
+    }
+
+    // Get chat status flow
+    fun getChatStatusFlow(chatId: String): Flow<String> = callbackFlow {
+        val listenerRegistration = db.collection("chats").document(chatId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "Error getting chat status: ${error.message}")
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                val status = snapshot?.getString("status") ?: "pending"
+                trySend(status).isSuccess
             }
 
         awaitClose { listenerRegistration.remove() }

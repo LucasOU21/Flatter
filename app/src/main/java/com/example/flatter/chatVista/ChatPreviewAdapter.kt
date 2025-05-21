@@ -1,10 +1,13 @@
 package com.example.flatter.chatVista
 
+import android.graphics.Color
+import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -43,14 +46,57 @@ class ChatPreviewAdapter(
             .circleCrop()
             .into(holder.ivProfilePic)
 
-        // Set user name
-        holder.tvUserName.text = chatPreview.otherUserName
-
-        // Set last message
-        holder.tvLastMessage.text = if (chatPreview.lastMessage.isEmpty()) {
-            "Start a conversation"
+        // Set user name - with listing title if available
+        val userName = if (chatPreview.listingTitle.isNotEmpty()) {
+            "${chatPreview.otherUserName} - ${chatPreview.listingTitle}"
         } else {
-            chatPreview.lastMessage
+            chatPreview.otherUserName
+        }
+        holder.tvUserName.text = userName
+
+        // Apply different styles based on chat status
+        when (chatPreview.status) {
+            "pending" -> {
+                holder.tvUserName.setTypeface(null, Typeface.BOLD)
+                holder.tvLastMessage.text = if (chatPreview.lastMessage.isEmpty()) {
+                    "Chat pendiente de aceptación"
+                } else {
+                    chatPreview.lastMessage
+                }
+                holder.itemView.setBackgroundColor(ContextCompat.getColor(holder.itemView.context, R.color.colorSurfaceDark))
+            }
+            "accepted" -> {
+                // Normal display for accepted chats
+                holder.tvUserName.setTypeface(null, if (chatPreview.unreadCount > 0) Typeface.BOLD else Typeface.NORMAL)
+                holder.tvLastMessage.text = if (chatPreview.lastMessage.isEmpty()) {
+                    "Comienza una conversación"
+                } else {
+                    chatPreview.lastMessage
+                }
+                holder.itemView.setBackgroundColor(Color.TRANSPARENT)
+            }
+            "declined" -> {
+                holder.tvUserName.setTypeface(null, Typeface.NORMAL)
+                holder.tvLastMessage.text = "Chat rechazado por el propietario"
+                holder.tvLastMessage.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.colorReject))
+                holder.itemView.setBackgroundColor(ContextCompat.getColor(holder.itemView.context, R.color.colorSurfaceDark))
+            }
+            "cancelled" -> {
+                holder.tvUserName.setTypeface(null, Typeface.NORMAL)
+                holder.tvLastMessage.text = "Chat cancelado"
+                holder.tvLastMessage.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.colorReject))
+                holder.itemView.setBackgroundColor(ContextCompat.getColor(holder.itemView.context, R.color.colorSurfaceDark))
+            }
+            else -> {
+                // Default display
+                holder.tvUserName.setTypeface(null, Typeface.NORMAL)
+                holder.tvLastMessage.text = if (chatPreview.lastMessage.isEmpty()) {
+                    "Comienza una conversación"
+                } else {
+                    chatPreview.lastMessage
+                }
+                holder.itemView.setBackgroundColor(Color.TRANSPARENT)
+            }
         }
 
         // Format and set timestamp
@@ -63,7 +109,7 @@ class ChatPreviewAdapter(
         holder.tvTimestamp.text = formattedDate
 
         // Set unread count
-        if (chatPreview.unreadCount > 0) {
+        if (chatPreview.unreadCount > 0 && chatPreview.status == "accepted") {
             holder.tvUnreadCount.visibility = View.VISIBLE
             holder.tvUnreadCount.text = chatPreview.unreadCount.toString()
         } else {

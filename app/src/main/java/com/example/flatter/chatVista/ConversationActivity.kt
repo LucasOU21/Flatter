@@ -3,9 +3,8 @@ package com.example.flatter.chatVista
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
-import android.widget.Button
-import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -13,7 +12,6 @@ import com.bumptech.glide.Glide
 import com.example.flatter.R
 import com.example.flatter.databinding.ActivityConversationBinding
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -31,7 +29,8 @@ class ConversationActivity : AppCompatActivity() {
     private var listingId: String = ""
     private var listingTitle: String = ""
     private var isNewChat: Boolean = false
-    private var isOwner: Boolean = false
+    private var isListingOwner: Boolean = false
+    private var chatStatus: String = "pending"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,18 +58,16 @@ class ConversationActivity : AppCompatActivity() {
 
         // Determine if the current user is the owner of the listing
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-        isOwner = currentUserId != otherUserId
+        isListingOwner = currentUserId != otherUserId
 
-        // Set up toolbar with listing title
+        // Set up toolbar with user name and listing title
         setupToolbar()
 
         // Set up RecyclerView
         setupRecyclerView()
 
-        // Show chat action options inside the chat
-        if (isNewChat) {
-            showChatActionBanner()
-        }
+        // Subscribe to chat status changes
+        subscribeToChatStatus()
 
         // Subscribe to message updates
         chatService.getChatMessagesFlow(chatId).onEach { messages ->
@@ -96,9 +93,19 @@ class ConversationActivity : AppCompatActivity() {
     private fun setupToolbar() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        // Hide default title
+        supportActionBar?.setDisplayShowTitleEnabled(false)
 
-        // Show listing title in the toolbar
-        supportActionBar?.title = listingTitle
+        // Set user name and listing title in our custom layout
+        binding.tvUserName.text = otherUserName
+
+        // Show listing title if available
+        if (listingTitle.isNotEmpty() && listingTitle != "Anuncio") {
+            binding.tvListingTitle.text = listingTitle
+            binding.tvListingTitle.visibility = View.VISIBLE
+        } else {
+            binding.tvListingTitle.visibility = View.GONE
+        }
 
         // Load other user's profile pic in toolbar
         Glide.with(this)
@@ -122,93 +129,116 @@ class ConversationActivity : AppCompatActivity() {
         }
     }
 
+    private fun subscribeToChatStatus() {
+        chatService.getChatStatusFlow(chatId).onEach { status ->
+            chatStatus = status
+
+            // Update UI based on status
+            when (status) {
+                "pending" -> {
+                    if (isNewChat) {
+                        showChatActionBanner()
+                    }
+                }
+                "accepted" -> {
+                    // Hide any banner and enable normal chat
+                    binding.chatActionBanner.root.visibility = View.GONE
+                    binding.layoutInput.visibility = View.VISIBLE
+                }
+                "declined", "cancelled" -> {
+                    // Show appropriate message and close
+                    val message = if (status == "declined") {
+                        "Chat rechazado por el propietario"
+                    } else {
+                        "Chat cancelado por el usuario"
+                    }
+                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                    finish()
+                }
+            }
+        }.launchIn(lifecycleScope)
+    }
+
     private fun showChatActionBanner() {
         // Show action banner based on whether user is owner or requester
-        // Fix: Access the chatActionBanner view as a ViewGroup or specific view type
-        val actionBanner = findViewById<View>(R.id.chatActionBanner)
+        val actionBanner = binding.chatActionBanner.root
         actionBanner.visibility = View.VISIBLE
 
-        // Get references to the views in the banner
-        val tvBannerMessage = findViewById<TextView>(R.id.tvBannerMessage)
-        val btnBannerAction1 = findViewById<Button>(R.id.btnBannerAction1)
-        val btnBannerAction2 = findViewById<Button>(R.id.btnBannerAction2)
+        // Get references to the banner views
+        val tvBannerMessage = binding.chatActionBanner.tvBannerMessage
+        val btnAction1 = binding.chatActionBanner.btnBannerAction1
+        val btnAction2 = binding.chatActionBanner.btnBannerAction2
 
-        if (isOwner) {
+        if (isListingOwner) {
             // Owner sees info about the requester with accept/decline options
             tvBannerMessage.text = "A $otherUserName le interesa tu anuncio"
-            btnBannerAction1.text = "Aceptar"
-            btnBannerAction2.text = "Rechazar"
+            btnAction1.text = "Aceptar"
+            btnAction2.text = "Rechazar"
 
-            btnBannerAction1.setOnClickListener {
-                // Accept chat request
-                updateChatStatus("accepted")
-                actionBanner.visibility = View.GONE
+            btnAction1.setOnClickListener {
+                lifecycleScope.launch {
+                    // Accept chat request
+                    chatService.updateChatStatus(chatId, "accepted")
+                    actionBanner.visibility = View.GONE
+                    binding.layoutInput.visibility = View.VISIBLE
+                }
             }
 
-            btnBannerAction2.setOnClickListener {
-                // Decline chat request
-                updateChatStatus("declined")
-                sendDeclineNotification()
-                finish()
+            btnAction2.setOnClickListener {
+                showDeclineConfirmation()
             }
         } else {
             // Requester sees chat info with continue/cancel options
             tvBannerMessage.text = "Tu solicitud ha sido enviada a $otherUserName"
-            btnBannerAction1.text = "Continuar"
-            btnBannerAction2.text = "Cancelar"
+            btnAction1.text = "Continuar"
+            btnAction2.text = "Cancelar"
 
-            btnBannerAction1.setOnClickListener {
+            btnAction1.setOnClickListener {
                 // Continue with chat (just hide the banner)
                 actionBanner.visibility = View.GONE
             }
 
-            btnBannerAction2.setOnClickListener {
-                // Cancel chat request
-                updateChatStatus("cancelled")
-                finish()
+            btnAction2.setOnClickListener {
+                showCancelConfirmation()
             }
         }
     }
 
-    private fun updateChatStatus(status: String) {
-        val db = FirebaseFirestore.getInstance()
-
-        db.collection("chats").document(chatId)
-            .update("status", status)
-            .addOnSuccessListener {
-                if (status != "accepted") {
-                    val statusMessage = when(status) {
-                        "declined" -> "Chat rechazado"
-                        "cancelled" -> "Chat cancelado"
-                        else -> "Estado actualizado"
-                    }
-                    Toast.makeText(this, statusMessage, Toast.LENGTH_SHORT).show()
+    private fun showDeclineConfirmation() {
+        AlertDialog.Builder(this)
+            .setTitle("Rechazar chat")
+            .setMessage("¿Estás seguro que quieres rechazar este chat? Esta acción no se puede deshacer.")
+            .setPositiveButton("Rechazar") { _, _ ->
+                lifecycleScope.launch {
+                    chatService.updateChatStatus(chatId, "declined")
+                    finish()
                 }
             }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Error al actualizar estado: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
-    private fun sendDeclineNotification() {
-        // Create a notification to let the requester know their chat was declined
-        val db = FirebaseFirestore.getInstance()
-        val notification = hashMapOf(
-            "userId" to otherUserId,
-            "title" to "Solicitud de chat rechazada",
-            "message" to "Tu solicitud de chat para \"$listingTitle\" ha sido rechazada por el propietario",
-            "timestamp" to com.google.firebase.Timestamp.now(),
-            "read" to false,
-            "type" to "chat_declined"
-        )
-
-        db.collection("notifications").add(notification)
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Error al enviar notificación: ${e.message}", Toast.LENGTH_SHORT).show()
+    private fun showCancelConfirmation() {
+        AlertDialog.Builder(this)
+            .setTitle("Cancelar chat")
+            .setMessage("¿Estás seguro que quieres cancelar este chat? Esta acción no se puede deshacer.")
+            .setPositiveButton("Cancelar chat") { _, _ ->
+                lifecycleScope.launch {
+                    chatService.updateChatStatus(chatId, "cancelled")
+                    finish()
+                }
             }
+            .setNegativeButton("Volver", null)
+            .show()
     }
 
     private fun sendMessage() {
+        // Only allow sending messages if chat is accepted or we're the owner
+        if (chatStatus != "accepted" && !isListingOwner) {
+            Toast.makeText(this, "El chat aún no ha sido aceptado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val messageText = binding.etMessage.text.toString().trim()
 
         if (messageText.isEmpty()) {
@@ -224,6 +254,11 @@ class ConversationActivity : AppCompatActivity() {
         // Send message
         lifecycleScope.launch {
             val success = chatService.sendMessage(chatId, messageText)
+
+            // If this is the first message and we're the listing owner, automatically accept the chat
+            if (success && isListingOwner && chatStatus == "pending") {
+                chatService.updateChatStatus(chatId, "accepted")
+            }
 
             binding.progressBar.visibility = View.GONE
 
