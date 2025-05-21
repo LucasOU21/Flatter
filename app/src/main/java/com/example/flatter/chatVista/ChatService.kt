@@ -16,7 +16,11 @@ class ChatService {
     private val TAG = "ChatService"
 
     // Function to create or get a chat between two users
-    suspend fun getOrCreateChat(otherUserId: String): String {
+    suspend fun getOrCreateChat(
+        otherUserId: String,
+        listingId: String = "",
+        listingTitle: String = ""
+    ): String {
         val currentUserId = auth.currentUser?.uid ?: throw IllegalStateException("User not logged in")
 
         // Sort user IDs to ensure consistent chat ID generation
@@ -27,12 +31,14 @@ class ChatService {
         val chatDoc = chatRef.get().await()
 
         if (!chatDoc.exists()) {
-            // Create new chat - FIX: Use Map<String, Any> explicitly
+            // Create new chat with listing information
             val chatData: Map<String, Any> = mapOf(
                 "participants" to userIds,
                 "createdAt" to com.google.firebase.Timestamp.now(),
                 "lastMessage" to "",
-                "lastMessageTimestamp" to com.google.firebase.Timestamp.now()
+                "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
+                "listingId" to listingId,
+                "listingTitle" to listingTitle
             )
             chatRef.set(chatData).await()
 
@@ -40,7 +46,7 @@ class ChatService {
             val currentUserData = db.collection("users").document(currentUserId).get().await()
             val otherUserData = db.collection("users").document(otherUserId).get().await()
 
-            // Create chat preview for current user - FIX: Use Map<String, Any> explicitly
+            // Create chat preview for current user with listing info
             val currentUserChatPreview: Map<String, Any> = mapOf(
                 "chatId" to chatId,
                 "otherUserId" to otherUserId,
@@ -48,13 +54,15 @@ class ChatService {
                 "otherUserProfilePic" to (otherUserData.getString("profileImageUrl") ?: ""),
                 "unreadCount" to 0,
                 "lastMessage" to "",
-                "lastMessageTimestamp" to com.google.firebase.Timestamp.now()
+                "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
+                "listingId" to listingId,
+                "listingTitle" to listingTitle
             )
             db.collection("users").document(currentUserId)
                 .collection("chats").document(chatId)
                 .set(currentUserChatPreview).await()
 
-            // Create chat preview for other user - FIX: Use Map<String, Any> explicitly
+            // Create chat preview for other user with listing info
             val otherUserChatPreview: Map<String, Any> = mapOf(
                 "chatId" to chatId,
                 "otherUserId" to currentUserId,
@@ -62,7 +70,9 @@ class ChatService {
                 "otherUserProfilePic" to (currentUserData.getString("profileImageUrl") ?: ""),
                 "unreadCount" to 0,
                 "lastMessage" to "",
-                "lastMessageTimestamp" to com.google.firebase.Timestamp.now()
+                "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
+                "listingId" to listingId,
+                "listingTitle" to listingTitle
             )
             db.collection("users").document(otherUserId)
                 .collection("chats").document(chatId)

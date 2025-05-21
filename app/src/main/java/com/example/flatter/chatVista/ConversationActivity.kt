@@ -3,8 +3,9 @@ package com.example.flatter.chatVista
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
+import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -123,21 +124,28 @@ class ConversationActivity : AppCompatActivity() {
 
     private fun showChatActionBanner() {
         // Show action banner based on whether user is owner or requester
-        binding.chatActionBanner.visibility = View.VISIBLE
+        // Fix: Access the chatActionBanner view as a ViewGroup or specific view type
+        val actionBanner = findViewById<View>(R.id.chatActionBanner)
+        actionBanner.visibility = View.VISIBLE
+
+        // Get references to the views in the banner
+        val tvBannerMessage = findViewById<TextView>(R.id.tvBannerMessage)
+        val btnBannerAction1 = findViewById<Button>(R.id.btnBannerAction1)
+        val btnBannerAction2 = findViewById<Button>(R.id.btnBannerAction2)
 
         if (isOwner) {
             // Owner sees info about the requester with accept/decline options
-            binding.tvBannerMessage.text = "A $otherUserName le interesa tu anuncio"
-            binding.btnBannerAction1.text = "Aceptar"
-            binding.btnBannerAction2.text = "Rechazar"
+            tvBannerMessage.text = "A $otherUserName le interesa tu anuncio"
+            btnBannerAction1.text = "Aceptar"
+            btnBannerAction2.text = "Rechazar"
 
-            binding.btnBannerAction1.setOnClickListener {
+            btnBannerAction1.setOnClickListener {
                 // Accept chat request
                 updateChatStatus("accepted")
-                binding.chatActionBanner.visibility = View.GONE
+                actionBanner.visibility = View.GONE
             }
 
-            binding.btnBannerAction2.setOnClickListener {
+            btnBannerAction2.setOnClickListener {
                 // Decline chat request
                 updateChatStatus("declined")
                 sendDeclineNotification()
@@ -145,16 +153,16 @@ class ConversationActivity : AppCompatActivity() {
             }
         } else {
             // Requester sees chat info with continue/cancel options
-            binding.tvBannerMessage.text = "Tu solicitud ha sido enviada a $otherUserName"
-            binding.btnBannerAction1.text = "Continuar"
-            binding.btnBannerAction2.text = "Cancelar"
+            tvBannerMessage.text = "Tu solicitud ha sido enviada a $otherUserName"
+            btnBannerAction1.text = "Continuar"
+            btnBannerAction2.text = "Cancelar"
 
-            binding.btnBannerAction1.setOnClickListener {
+            btnBannerAction1.setOnClickListener {
                 // Continue with chat (just hide the banner)
-                binding.chatActionBanner.visibility = View.GONE
+                actionBanner.visibility = View.GONE
             }
 
-            binding.btnBannerAction2.setOnClickListener {
+            btnBannerAction2.setOnClickListener {
                 // Cancel chat request
                 updateChatStatus("cancelled")
                 finish()
