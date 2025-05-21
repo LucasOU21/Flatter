@@ -21,6 +21,7 @@ import com.google.firebase.storage.FirebaseStorage
 class ProfileFragment : Fragment() {
 
     private var _binding: FragmentProfileBinding? = null
+    // This property is only valid between onCreateView and onDestroyView
     private val binding get() = _binding!!
 
     private lateinit var auth: FirebaseAuth
@@ -29,22 +30,22 @@ class ProfileFragment : Fragment() {
 
     private var profileImageUri: Uri? = null
 
-    //Register image picker activity with improved implementation
+    // Register image picker activity with improved implementation
     private val pickImage = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
                 try {
-                    //Update the displayed image immediately
+                    // Update the displayed image immediately
                     profileImageUri = uri
 
-                    //Use Glide for better image loading and error handling
+                    // Use Glide for better image loading and error handling
                     Glide.with(requireContext())
                         .load(uri)
                         .placeholder(R.drawable.default_profile_img)
                         .error(R.drawable.default_profile_img)
                         .into(binding.ivProfilePicture)
 
-                    //The actual upload happens when the user clicks Save
+                    // The actual upload happens when the user clicks Save
                     Toast.makeText(requireContext(), "Image selected, click Save to update your profile", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
                     Toast.makeText(requireContext(), "Error displaying image: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -65,7 +66,7 @@ class ProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        //Initialize Firebase
+        // Initialize Firebase
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
         storage = FirebaseStorage.getInstance()
@@ -78,21 +79,9 @@ class ProfileFragment : Fragment() {
     }
 
     private fun setupListeners() {
-        // Image edit listener
-        binding.tvEditPhoto.setOnClickListener {
-            try {
-                // Create the gallery intent
-                val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-
-                // Make sure the device can handle this intent
-                if (galleryIntent.resolveActivity(requireActivity().packageManager) != null) {
-                    pickImage.launch(galleryIntent)
-                } else {
-                    Toast.makeText(requireContext(), "No gallery app found", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Error opening gallery: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+        // Image edit button or area
+        binding.fabEditPhoto.setOnClickListener {
+            openImagePicker()
         }
 
         // Save button listener
@@ -101,8 +90,24 @@ class ProfileFragment : Fragment() {
         }
 
         // Add sign out button functionality
-        binding.btnSignOut?.setOnClickListener {
+        binding.btnSignOut.setOnClickListener {
             signOut()
+        }
+    }
+
+    private fun openImagePicker() {
+        try {
+            // Create the gallery intent
+            val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+
+            // Make sure the device can handle this intent
+            if (galleryIntent.resolveActivity(requireActivity().packageManager) != null) {
+                pickImage.launch(galleryIntent)
+            } else {
+                Toast.makeText(requireContext(), "No gallery app found", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Error opening gallery: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -121,6 +126,9 @@ class ProfileFragment : Fragment() {
         db.collection("users").document(currentUser.uid)
             .get()
             .addOnSuccessListener { document ->
+                // Check if the fragment is still attached to avoid NPE
+                if (!isAdded || _binding == null) return@addOnSuccessListener
+
                 if (document.exists()) {
                     // Populate fields with user data
                     binding.etFullName.setText(document.getString("fullName") ?: "")
@@ -148,6 +156,9 @@ class ProfileFragment : Fragment() {
                 showLoading(false)
             }
             .addOnFailureListener { e ->
+                // Check if the fragment is still attached to avoid NPE
+                if (!isAdded || _binding == null) return@addOnFailureListener
+
                 Toast.makeText(requireContext(), "Error al cargar perfil: ${e.message}", Toast.LENGTH_SHORT).show()
                 showLoading(false)
             }
@@ -167,10 +178,16 @@ class ProfileFragment : Fragment() {
         db.collection("users").document(userId)
             .set(userData)
             .addOnSuccessListener {
+                // Check if the fragment is still attached to avoid NPE
+                if (!isAdded || _binding == null) return@addOnSuccessListener
+
                 // Profile created successfully, fields already empty
                 binding.etEmail.setText(email)
             }
             .addOnFailureListener { e ->
+                // Check if the fragment is still attached to avoid NPE
+                if (!isAdded || _binding == null) return@addOnFailureListener
+
                 Toast.makeText(requireContext(), "Error al crear perfil: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
@@ -214,6 +231,9 @@ class ProfileFragment : Fragment() {
         val imageRef = storage.reference.child("profile_images/$userId.jpg")
 
         profileImageUri?.let { uri ->
+            // Check if the fragment is still attached to avoid NPE
+            if (!isAdded || _binding == null) return@let
+
             // Show progress indicator
             binding.progressBar.visibility = View.VISIBLE
 
@@ -227,18 +247,19 @@ class ProfileFragment : Fragment() {
                             onSuccess(downloadUri.toString())
                         }
                         .addOnFailureListener { e ->
+                            // Check if the fragment is still attached to avoid NPE
+                            if (!isAdded || _binding == null) return@addOnFailureListener
+
                             showLoading(false)
                             Toast.makeText(requireContext(), "Error al obtener URL de imagen: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
                 }
                 .addOnFailureListener { e ->
+                    // Check if the fragment is still attached to avoid NPE
+                    if (!isAdded || _binding == null) return@addOnFailureListener
+
                     showLoading(false)
                     Toast.makeText(requireContext(), "Error al subir imagen: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-                .addOnProgressListener { taskSnapshot ->
-                    // You can add progress updates here if needed
-                    val progress = (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount)
-                    // You could update a progress bar with this value
                 }
         }
     }
@@ -252,6 +273,9 @@ class ProfileFragment : Fragment() {
         maxBudgetStr: String,
         imageUrl: String?
     ) {
+        // Check if the fragment is still attached to avoid NPE
+        if (!isAdded || _binding == null) return
+
         // Convert budget to double or 0.0 if empty
         val maxBudget = maxBudgetStr.toDoubleOrNull() ?: 0.0
 
@@ -274,6 +298,9 @@ class ProfileFragment : Fragment() {
         db.collection("users").document(userId)
             .update(userUpdates as Map<String, Any>)
             .addOnSuccessListener {
+                // Check if the fragment is still attached to avoid NPE
+                if (!isAdded || _binding == null) return@addOnSuccessListener
+
                 Toast.makeText(requireContext(), "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
 
                 // Reset the profile image URI since we've processed it
@@ -282,6 +309,9 @@ class ProfileFragment : Fragment() {
                 showLoading(false)
             }
             .addOnFailureListener { e ->
+                // Check if the fragment is still attached to avoid NPE
+                if (!isAdded || _binding == null) return@addOnFailureListener
+
                 Toast.makeText(requireContext(), "Error al actualizar perfil: ${e.message}", Toast.LENGTH_SHORT).show()
                 showLoading(false)
             }
@@ -301,12 +331,16 @@ class ProfileFragment : Fragment() {
     }
 
     private fun showLoading(isLoading: Boolean) {
+        // Check if the fragment is still attached to avoid NPE
+        if (!isAdded || _binding == null) return
+
         binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
         binding.btnSaveProfile.isEnabled = !isLoading
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // Important: clear the binding reference to avoid memory leaks
         _binding = null
     }
 }

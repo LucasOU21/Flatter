@@ -1,6 +1,7 @@
 package com.example.flatter.chatVista
 
 import android.os.Bundle
+import android.util.Log
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
@@ -12,9 +13,11 @@ import com.bumptech.glide.Glide
 import com.example.flatter.R
 import com.example.flatter.databinding.ActivityConversationBinding
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class ConversationActivity : AppCompatActivity() {
 
@@ -56,9 +59,36 @@ class ConversationActivity : AppCompatActivity() {
             return
         }
 
-        // Determine if the current user is the owner of the listing
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-        isListingOwner = currentUserId != otherUserId
+        // Get the listing owner ID to determine if the current user is the listing owner
+        lifecycleScope.launch {
+            try {
+                if (listingId.isNotEmpty()) {
+                    val listingDoc = FirebaseFirestore.getInstance()
+                        .collection("listings")
+                        .document(listingId)
+                        .get()
+                        .await()
+
+                    val listingOwnerId = listingDoc.getString("userId") ?: ""
+                    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
+                    // Set isListingOwner based on whether the current user is the listing owner
+                    isListingOwner = (currentUserId == listingOwnerId)
+
+                    Log.d("ConversationActivity", "Current user: $currentUserId, Listing owner: $listingOwnerId, isListingOwner: $isListingOwner")
+
+                    // Update UI based on owner status
+                    setupUiBasedOnRole()
+                } else {
+                    isListingOwner = false
+                    setupUiBasedOnRole()
+                }
+            } catch (e: Exception) {
+                Log.e("ConversationActivity", "Error determining listing owner: ${e.message}")
+                isListingOwner = false
+                setupUiBasedOnRole()
+            }
+        }
 
         // Set up toolbar with user name and listing title
         setupToolbar()
@@ -87,6 +117,21 @@ class ConversationActivity : AppCompatActivity() {
         // Set up send button
         binding.btnSend.setOnClickListener {
             sendMessage()
+        }
+    }
+
+    private fun setupUiBasedOnRole() {
+        // Show or hide input field based on chat status
+        if (chatStatus == "pending") {
+            // If chat is pending, only show input if the current user is NOT the listing owner
+            // Listing owners should accept the chat first before being able to send messages
+            binding.layoutInput.visibility = if (!isListingOwner) View.VISIBLE else View.GONE
+        } else if (chatStatus == "accepted") {
+            // If chat is accepted, show input for both users
+            binding.layoutInput.visibility = View.VISIBLE
+        } else {
+            // For any other status (declined, cancelled), hide the input
+            binding.layoutInput.visibility = View.GONE
         }
     }
 
@@ -132,13 +177,15 @@ class ConversationActivity : AppCompatActivity() {
     private fun subscribeToChatStatus() {
         chatService.getChatStatusFlow(chatId).onEach { status ->
             chatStatus = status
+            Log.d("ConversationActivity", "Chat status updated to: $status, isListingOwner: $isListingOwner")
 
             // Update UI based on status
             when (status) {
                 "pending" -> {
-                    if (isNewChat) {
+                    if (isNewChat || isListingOwner) {
                         showChatActionBanner()
                     }
+                    setupUiBasedOnRole()
                 }
                 "accepted" -> {
                     // Hide any banner and enable normal chat
@@ -175,6 +222,10 @@ class ConversationActivity : AppCompatActivity() {
             btnAction1.text = "Aceptar"
             btnAction2.text = "Rechazar"
 
+            // Show both buttons for listing owner
+            btnAction1.visibility = View.VISIBLE
+            btnAction2.visibility = View.VISIBLE
+
             btnAction1.setOnClickListener {
                 lifecycleScope.launch {
                     // Accept chat request
@@ -188,18 +239,16 @@ class ConversationActivity : AppCompatActivity() {
                 showDeclineConfirmation()
             }
         } else {
-            // Requester sees chat info with continue/cancel options
+            // Requester sees chat info with continue option only (no cancel option)
             tvBannerMessage.text = "Tu solicitud ha sido enviada a $otherUserName"
             btnAction1.text = "Continuar"
-            btnAction2.text = "Cancelar"
+
+            // Hide reject button for requester
+            btnAction2.visibility = View.GONE
 
             btnAction1.setOnClickListener {
                 // Continue with chat (just hide the banner)
                 actionBanner.visibility = View.GONE
-            }
-
-            btnAction2.setOnClickListener {
-                showCancelConfirmation()
             }
         }
     }
@@ -233,9 +282,9 @@ class ConversationActivity : AppCompatActivity() {
     }
 
     private fun sendMessage() {
-        // Only allow sending messages if chat is accepted or we're the owner
-        if (chatStatus != "accepted" && !isListingOwner) {
-            Toast.makeText(this, "El chat aún no ha sido aceptado", Toast.LENGTH_SHORT).show()
+        // Only allow sending messages if chat is accepted or we're NOT the owner (requester can send)
+        if (chatStatus != "accepted" && isListingOwner) {
+            Toast.makeText(this, "Debes aceptar el chat primero", Toast.LENGTH_SHORT).show()
             return
         }
 
