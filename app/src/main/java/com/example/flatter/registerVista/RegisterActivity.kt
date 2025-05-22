@@ -7,12 +7,12 @@ import android.text.TextWatcher
 import android.util.Log
 import android.util.Patterns
 import android.view.View
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.flatter.PasswordStrengthMeter
 import com.example.flatter.homeVista.HomeActivity
 import com.example.flatter.R
 import com.example.flatter.databinding.ActivityRegisterBinding
+import com.example.flatter.utils.FlatterToast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -42,12 +42,12 @@ class RegisterActivity : AppCompatActivity() {
             }
         }
 
-        //Volver a la pantalla de login
+        // Volver a la pantalla de login
         binding.tvLogin.setOnClickListener {
             finish() // Regresa a la actividad anterior (Login)
         }
 
-        //Aplicar animaciones a los campos al enfocarlos (opcional, para mejorar la interactividad)
+        // Aplicar animaciones a los campos al enfocarlos
         setupFocusAnimations()
     }
 
@@ -138,7 +138,7 @@ class RegisterActivity : AppCompatActivity() {
 
         // Validar aceptación de términos
         if (!binding.cbTerms.isChecked) {
-            Toast.makeText(this, getString(R.string.terms_not_accepted), Toast.LENGTH_SHORT).show()
+            FlatterToast.showError(this, getString(R.string.terms_not_accepted))
             valid = false
         }
 
@@ -147,7 +147,6 @@ class RegisterActivity : AppCompatActivity() {
 
     private fun isValidPhone(phone: String): Boolean {
         // Patrón básico para números de teléfono españoles
-        // Acepta formatos: +34612345678, 612345678, etc.
         val phonePattern = "^(\\+[0-9]{1,3})?[0-9]{9}\$"
         return phone.matches(phonePattern.toRegex())
     }
@@ -169,28 +168,26 @@ class RegisterActivity : AppCompatActivity() {
                     // Error en el registro
                     showProgress(false)
                     val message = task.exception?.message ?: "Error desconocido"
-                    Toast.makeText(
+                    FlatterToast.showError(
                         this,
-                        getString(R.string.error_registration, message),
-                        Toast.LENGTH_LONG
-                    ).show()
+                        "Error en el registro: $message"
+                    )
                     Log.e(TAG, "Error al registrar: ${task.exception}")
                 }
             }
     }
 
-    // In RegisterActivity.kt, replace the saveUserDataToFirestore() method with:
     private fun saveUserDataToFirestore(userId: String) {
-        // Obtain the data from the form
+        // Obtener los datos del formulario
         val username = binding.etUsername.text.toString().trim()
         val email = binding.etEmail.text.toString().trim()
         val phone = binding.etPhone.text.toString().trim()
         val userType = if (binding.rbRenter.isChecked) "inquilino" else "propietario"
 
-        // Create user object for Firestore
+        // Crear objeto de usuario para Firestore
         val user = hashMapOf(
             "username" to username,
-            "fullName" to username, // Add this line to ensure the username is also saved as fullName
+            "fullName" to username, // Asegurar que el username también se guarde como fullName
             "email" to email,
             "phone" to phone,
             "userType" to userType,
@@ -199,29 +196,28 @@ class RegisterActivity : AppCompatActivity() {
             "bio" to ""
         )
 
-        // Save to Firestore
+        // Guardar en Firestore
         db.collection("users").document(userId)
             .set(user)
             .addOnSuccessListener {
                 showProgress(false)
-                Toast.makeText(this, getString(R.string.registration_success), Toast.LENGTH_SHORT).show()
+                FlatterToast.showSuccess(this, "¡Cuenta creada exitosamente!")
 
-                // Sign out the user so they have to log in explicitly
+                // Cerrar sesión del usuario para que tengan que iniciar sesión explícitamente
                 auth.signOut()
 
-                // Return to LoginActivity
-                finish() // This will go back to the LoginActivity if it's in the back stack
+                // Volver a LoginActivity
+                finish() // Esto volverá al LoginActivity si está en la pila de actividades
             }
             .addOnFailureListener { e ->
                 showProgress(false)
-                Toast.makeText(
+                FlatterToast.showError(
                     this,
-                    getString(R.string.error_registration, e.message),
-                    Toast.LENGTH_LONG
-                ).show()
+                    "Error al guardar datos: ${e.message}"
+                )
                 Log.e(TAG, "Error al guardar datos: $e")
 
-                // Delete the Auth account if Firestore save failed
+                // Eliminar la cuenta de Auth si falló el guardado en Firestore
                 auth.currentUser?.delete()
             }
     }
@@ -242,22 +238,22 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private fun setupPasswordStrengthMeter() {
-        // Get references to the password field and strength meter
+        // Obtener referencias al campo de contraseña y medidor de fuerza
         val etPassword = binding.etPassword
         val passwordStrengthMeter = binding.passwordStrengthMeter
         val tvPasswordStrength = binding.tvPasswordStrength
 
-        // Connect the password field to the strength meter
+        // Conectar el campo de contraseña al medidor de fuerza
         passwordStrengthMeter.setStrengthTextView(tvPasswordStrength)
 
-        // Add a text change listener to the password field
+        // Agregar un listener de cambio de texto al campo de contraseña
         etPassword.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
             override fun afterTextChanged(s: Editable?) {
-                // Calculate the password strength and update the meter
+                // Calcular la fuerza de la contraseña y actualizar el medidor
                 val password = s.toString()
                 val strength = calculatePasswordStrength(password)
                 passwordStrengthMeter.setStrength(strength)
@@ -265,17 +261,17 @@ class RegisterActivity : AppCompatActivity() {
         })
     }
 
-    // Password strength calculation function
+    // Función de cálculo de fuerza de contraseña
     private fun calculatePasswordStrength(password: String): Int {
         if (password.isEmpty()) return PasswordStrengthMeter.STRENGTH_WEAK
 
         var score = 0
 
-        // Length criteria
+        // Criterios de longitud
         if (password.length >= 8) score++
         if (password.length >= 12) score++
 
-        // Complexity criteria
+        // Criterios de complejidad
         if (password.any { it.isDigit() }) score++
         if (password.any { it.isLowerCase() }) score++
         if (password.any { it.isUpperCase() }) score++

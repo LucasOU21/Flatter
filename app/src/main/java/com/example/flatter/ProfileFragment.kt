@@ -8,12 +8,12 @@ import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.example.flatter.databinding.FragmentProfileBinding
 import com.example.flatter.loginVista.LoginActivity
+import com.example.flatter.utils.FlatterToast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
@@ -46,9 +46,9 @@ class ProfileFragment : Fragment() {
                         .into(binding.ivProfilePicture)
 
                     // The actual upload happens when the user clicks Save
-                    Toast.makeText(requireContext(), "Image selected, click Save to update your profile", Toast.LENGTH_SHORT).show()
+                    FlatterToast.showShort(requireContext(), "Imagen seleccionada, haz clic en Guardar para actualizar tu perfil")
                 } catch (e: Exception) {
-                    Toast.makeText(requireContext(), "Error displaying image: ${e.message}", Toast.LENGTH_SHORT).show()
+                    FlatterToast.showError(requireContext(), "Error al mostrar imagen: ${e.message}")
                 }
             }
         }
@@ -104,10 +104,10 @@ class ProfileFragment : Fragment() {
             if (galleryIntent.resolveActivity(requireActivity().packageManager) != null) {
                 pickImage.launch(galleryIntent)
             } else {
-                Toast.makeText(requireContext(), "No gallery app found", Toast.LENGTH_SHORT).show()
+                FlatterToast.showError(requireContext(), "No se encontró una aplicación de galería")
             }
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Error opening gallery: ${e.message}", Toast.LENGTH_SHORT).show()
+            FlatterToast.showError(requireContext(), "Error al abrir galería: ${e.message}")
         }
     }
 
@@ -159,7 +159,7 @@ class ProfileFragment : Fragment() {
                 // Check if the fragment is still attached to avoid NPE
                 if (!isAdded || _binding == null) return@addOnFailureListener
 
-                Toast.makeText(requireContext(), "Error al cargar perfil: ${e.message}", Toast.LENGTH_SHORT).show()
+                FlatterToast.showError(requireContext(), "Error al cargar perfil: ${e.message}")
                 showLoading(false)
             }
     }
@@ -188,7 +188,7 @@ class ProfileFragment : Fragment() {
                 // Check if the fragment is still attached to avoid NPE
                 if (!isAdded || _binding == null) return@addOnFailureListener
 
-                Toast.makeText(requireContext(), "Error al crear perfil: ${e.message}", Toast.LENGTH_SHORT).show()
+                FlatterToast.showError(requireContext(), "Error al crear perfil: ${e.message}")
             }
     }
 
@@ -251,7 +251,7 @@ class ProfileFragment : Fragment() {
                             if (!isAdded || _binding == null) return@addOnFailureListener
 
                             showLoading(false)
-                            Toast.makeText(requireContext(), "Error al obtener URL de imagen: ${e.message}", Toast.LENGTH_SHORT).show()
+                            FlatterToast.showError(requireContext(), "Error al obtener URL de imagen: ${e.message}")
                         }
                 }
                 .addOnFailureListener { e ->
@@ -259,7 +259,7 @@ class ProfileFragment : Fragment() {
                     if (!isAdded || _binding == null) return@addOnFailureListener
 
                     showLoading(false)
-                    Toast.makeText(requireContext(), "Error al subir imagen: ${e.message}", Toast.LENGTH_SHORT).show()
+                    FlatterToast.showError(requireContext(), "Error al subir imagen: ${e.message}")
                 }
         }
     }
@@ -301,7 +301,7 @@ class ProfileFragment : Fragment() {
                 // Check if the fragment is still attached to avoid NPE
                 if (!isAdded || _binding == null) return@addOnSuccessListener
 
-                Toast.makeText(requireContext(), "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
+                FlatterToast.showSuccess(requireContext(), "Perfil actualizado correctamente")
 
                 // Reset the profile image URI since we've processed it
                 profileImageUri = null
@@ -312,7 +312,7 @@ class ProfileFragment : Fragment() {
                 // Check if the fragment is still attached to avoid NPE
                 if (!isAdded || _binding == null) return@addOnFailureListener
 
-                Toast.makeText(requireContext(), "Error al actualizar perfil: ${e.message}", Toast.LENGTH_SHORT).show()
+                FlatterToast.showError(requireContext(), "Error al actualizar perfil: ${e.message}")
                 showLoading(false)
             }
     }

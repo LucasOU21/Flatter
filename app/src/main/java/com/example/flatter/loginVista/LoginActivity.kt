@@ -5,11 +5,11 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.flatter.homeVista.HomeActivity
 import com.example.flatter.R
 import com.example.flatter.registerVista.RegisterActivity
+import com.example.flatter.utils.FlatterToast
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -59,7 +59,6 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    // Add this method to LoginActivity.kt
     private fun setupViews() {
         val etEmail = findViewById<TextInputEditText>(R.id.etEmail)
         val etPassword = findViewById<TextInputEditText>(R.id.etPassword)
@@ -72,7 +71,7 @@ class LoginActivity : AppCompatActivity() {
             val password = etPassword.text.toString().trim()
 
             if (email.isEmpty() || password.isEmpty()) {
-                Toast.makeText(this, "Rellena todos los campos", Toast.LENGTH_SHORT).show()
+                FlatterToast.showError(this, "Rellena todos los campos")
             } else {
                 loginUser(email, password)
             }
@@ -87,8 +86,6 @@ class LoginActivity : AppCompatActivity() {
         setupForgotPassword()
     }
 
-
-    //In LoginActivity.kt, add handling for the forgot password TextView
     private fun setupForgotPassword() {
         val tvForgotPassword = findViewById<TextView>(R.id.tvForgotPassword)
 
@@ -97,17 +94,16 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    //Add a dialog to get the user's email address
     private fun showForgotPasswordDialog() {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Restablecer contraseña")
 
-        //Set up the input field
+        // Set up the input field
         val input = EditText(this)
         input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
         input.hint = "Correo electrónico"
 
-        //Pre-fill with the email if already entered in the login form
+        // Pre-fill with the email if already entered in the login form
         val loginEmail = findViewById<TextInputEditText>(R.id.etEmail).text.toString().trim()
         if (loginEmail.isNotEmpty()) {
             input.setText(loginEmail)
@@ -121,7 +117,7 @@ class LoginActivity : AppCompatActivity() {
             if (email.isNotEmpty()) {
                 sendPasswordResetEmail(email)
             } else {
-                Toast.makeText(this, "Por favor, introduce tu correo electrónico", Toast.LENGTH_SHORT).show()
+                FlatterToast.showError(this, "Por favor, introduce tu correo electrónico")
             }
             dialog.dismiss()
         }
@@ -133,7 +129,6 @@ class LoginActivity : AppCompatActivity() {
         builder.show()
     }
 
-    //Send the password reset email using Firebase Auth
     private fun sendPasswordResetEmail(email: String) {
         findViewById<ProgressBar>(R.id.progressBar).visibility = ProgressBar.VISIBLE
 
@@ -142,21 +137,18 @@ class LoginActivity : AppCompatActivity() {
                 findViewById<ProgressBar>(R.id.progressBar).visibility = ProgressBar.GONE
 
                 if (task.isSuccessful) {
-                    Toast.makeText(
+                    FlatterToast.showSuccess(
                         this,
-                        "Correo de restablecimiento enviado a $email",
-                        Toast.LENGTH_LONG
-                    ).show()
+                        "Correo de restablecimiento enviado a $email"
+                    )
                 } else {
-                    Toast.makeText(
+                    FlatterToast.showError(
                         this,
-                        "Error: ${task.exception?.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
+                        "Error: ${task.exception?.message}"
+                    )
                 }
             }
     }
-
 
     private fun loginUser(email: String, password: String) {
         findViewById<ProgressBar>(R.id.progressBar).visibility = ProgressBar.VISIBLE
@@ -164,30 +156,30 @@ class LoginActivity : AppCompatActivity() {
         auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    //verificar si el usuario existe en Firestore
+                    // Verificar si el usuario existe en Firestore
                     val userId = auth.currentUser?.uid ?: ""
                     db.collection("users").document(userId).get()
                         .addOnSuccessListener { document ->
                             if (document.exists()) {
-                                //redirigir a la pantalla principal
+                                // Success message with custom toast
+                                FlatterToast.showSuccess(this, "¡Bienvenido a Flatter!")
+
+                                // Redirigir a la pantalla principal
                                 startActivity(Intent(this, HomeActivity::class.java))
                                 finish()
                             } else {
-                                Toast.makeText(
+                                FlatterToast.showError(
                                     this,
-                                    "Usuario no registrado en Firestore",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                auth.signOut()  //cerrar sesión si no está en Firestore
+                                    "Usuario no registrado en Firestore"
+                                )
+                                auth.signOut() // Cerrar sesión si no está en Firestore
                             }
                         }
                         .addOnFailureListener {
-                            Toast.makeText(this, "Error al verificar usuario", Toast.LENGTH_SHORT)
-                                .show()
+                            FlatterToast.showError(this, "Error al verificar usuario")
                         }
                 } else {
-                    Toast.makeText(this, "Error: ${task.exception?.message}", Toast.LENGTH_SHORT)
-                        .show()
+                    FlatterToast.showError(this, "Error: ${task.exception?.message}")
                 }
                 findViewById<ProgressBar>(R.id.progressBar).visibility = ProgressBar.GONE
             }

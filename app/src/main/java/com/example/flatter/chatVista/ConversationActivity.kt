@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.flatter.R
 import com.example.flatter.databinding.ActivityConversationBinding
+import com.example.flatter.utils.FlatterToast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.launchIn
@@ -121,17 +122,37 @@ class ConversationActivity : AppCompatActivity() {
     }
 
     private fun setupUiBasedOnRole() {
-        // Show or hide input field based on chat status
-        if (chatStatus == "pending") {
-            // If chat is pending, only show input if the current user is NOT the listing owner
-            // Listing owners should accept the chat first before being able to send messages
-            binding.layoutInput.visibility = if (!isListingOwner) View.VISIBLE else View.GONE
-        } else if (chatStatus == "accepted") {
-            // If chat is accepted, show input for both users
-            binding.layoutInput.visibility = View.VISIBLE
-        } else {
-            // For any other status (declined, cancelled), hide the input
-            binding.layoutInput.visibility = View.GONE
+        Log.d("ConversationActivity", "Setting up UI - Status: $chatStatus, isListingOwner: $isListingOwner")
+
+        when (chatStatus) {
+            "pending" -> {
+                // For pending chats, show input for both users but with different behavior
+                binding.layoutInput.visibility = View.VISIBLE
+
+                if (isListingOwner) {
+                    // Listing owner can respond to accept the chat implicitly
+                    // No need to hide input, they can respond which will accept the chat
+                    Log.d("ConversationActivity", "Listing owner can respond to pending chat")
+                } else {
+                    // Chat requester can also send messages while pending
+                    Log.d("ConversationActivity", "Chat requester can send while pending")
+                }
+            }
+            "accepted" -> {
+                // For accepted chats, show input for both users
+                binding.layoutInput.visibility = View.VISIBLE
+                Log.d("ConversationActivity", "Chat accepted, input visible for both users")
+            }
+            "declined", "cancelled" -> {
+                // For declined or cancelled chats, hide input
+                binding.layoutInput.visibility = View.GONE
+                Log.d("ConversationActivity", "Chat declined/cancelled, input hidden")
+            }
+            else -> {
+                // Default case, show input
+                binding.layoutInput.visibility = View.VISIBLE
+                Log.d("ConversationActivity", "Default case, input visible")
+            }
         }
     }
 
@@ -182,7 +203,7 @@ class ConversationActivity : AppCompatActivity() {
             // Update UI based on status
             when (status) {
                 "pending" -> {
-                    if (isNewChat || isListingOwner) {
+                    if (isNewChat && isListingOwner) {
                         showChatActionBanner()
                     }
                     setupUiBasedOnRole()
@@ -191,6 +212,7 @@ class ConversationActivity : AppCompatActivity() {
                     // Hide any banner and enable normal chat
                     binding.chatActionBanner.root.visibility = View.GONE
                     binding.layoutInput.visibility = View.VISIBLE
+                    setupUiBasedOnRole()
                 }
                 "declined", "cancelled" -> {
                     // Show appropriate message and close
@@ -199,7 +221,7 @@ class ConversationActivity : AppCompatActivity() {
                     } else {
                         "Chat cancelado por el usuario"
                     }
-                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                    FlatterToast.showError(this, message)
                     finish()
                 }
             }
@@ -239,7 +261,7 @@ class ConversationActivity : AppCompatActivity() {
                 showDeclineConfirmation()
             }
         } else {
-            // Requester sees chat info with continue option only (no cancel option)
+            // Requester sees chat info with continue option only
             tvBannerMessage.text = "Tu solicitud ha sido enviada a $otherUserName"
             btnAction1.text = "Continuar"
 
@@ -267,27 +289,7 @@ class ConversationActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showCancelConfirmation() {
-        AlertDialog.Builder(this)
-            .setTitle("Cancelar chat")
-            .setMessage("¿Estás seguro que quieres cancelar este chat? Esta acción no se puede deshacer.")
-            .setPositiveButton("Cancelar chat") { _, _ ->
-                lifecycleScope.launch {
-                    chatService.updateChatStatus(chatId, "cancelled")
-                    finish()
-                }
-            }
-            .setNegativeButton("Volver", null)
-            .show()
-    }
-
     private fun sendMessage() {
-        // Only allow sending messages if chat is accepted or we're NOT the owner (requester can send)
-        if (chatStatus != "accepted" && isListingOwner) {
-            Toast.makeText(this, "Debes aceptar el chat primero", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         val messageText = binding.etMessage.text.toString().trim()
 
         if (messageText.isEmpty()) {
@@ -304,19 +306,20 @@ class ConversationActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val success = chatService.sendMessage(chatId, messageText)
 
-            // If this is the first message and we're the listing owner, automatically accept the chat
+            // If this is a message from the listing owner and chat is pending, accept the chat
             if (success && isListingOwner && chatStatus == "pending") {
+                Log.d("ConversationActivity", "Listing owner sent message, accepting chat")
                 chatService.updateChatStatus(chatId, "accepted")
             }
 
             binding.progressBar.visibility = View.GONE
 
             if (!success) {
-                Toast.makeText(
+                // Replace with custom error toast
+                FlatterToast.showError(
                     this@ConversationActivity,
-                    "Error al enviar mensaje",
-                    Toast.LENGTH_SHORT
-                ).show()
+                    "Error al enviar mensaje"
+                )
             }
         }
     }
