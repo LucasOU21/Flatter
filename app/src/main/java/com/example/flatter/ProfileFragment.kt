@@ -8,11 +8,12 @@ import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.example.flatter.databinding.FragmentProfileBinding
+import com.example.flatter.loginVista.LoginActivity
+import com.example.flatter.utils.FlatterToast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
@@ -20,6 +21,7 @@ import com.google.firebase.storage.FirebaseStorage
 class ProfileFragment : Fragment() {
 
     private var _binding: FragmentProfileBinding? = null
+    // This property is only valid between onCreateView and onDestroyView
     private val binding get() = _binding!!
 
     private lateinit var auth: FirebaseAuth
@@ -28,12 +30,26 @@ class ProfileFragment : Fragment() {
 
     private var profileImageUri: Uri? = null
 
-    // Register image picker activity
+    // Register image picker activity with improved implementation
     private val pickImage = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
-                profileImageUri = uri
-                binding.ivProfilePicture.setImageURI(uri)
+                try {
+                    // Update the displayed image immediately
+                    profileImageUri = uri
+
+                    // Use Glide for better image loading and error handling
+                    Glide.with(requireContext())
+                        .load(uri)
+                        .placeholder(R.drawable.default_profile_img)
+                        .error(R.drawable.default_profile_img)
+                        .into(binding.ivProfilePicture)
+
+                    // The actual upload happens when the user clicks Save
+                    FlatterToast.showShort(requireContext(), "Imagen seleccionada, haz clic en Guardar para actualizar tu perfil")
+                } catch (e: Exception) {
+                    FlatterToast.showError(requireContext(), "Error al mostrar imagen: ${e.message}")
+                }
             }
         }
     }
@@ -63,10 +79,9 @@ class ProfileFragment : Fragment() {
     }
 
     private fun setupListeners() {
-        // Image edit listener
-        binding.tvEditPhoto.setOnClickListener {
-            val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            pickImage.launch(galleryIntent)
+        // Image edit button or area
+        binding.fabEditPhoto.setOnClickListener {
+            openImagePicker()
         }
 
         // Save button listener
@@ -75,8 +90,24 @@ class ProfileFragment : Fragment() {
         }
 
         // Add sign out button functionality
-        binding.btnSignOut?.setOnClickListener {
+        binding.btnSignOut.setOnClickListener {
             signOut()
+        }
+    }
+
+    private fun openImagePicker() {
+        try {
+            // Create the gallery intent
+            val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+
+            // Make sure the device can handle this intent
+            if (galleryIntent.resolveActivity(requireActivity().packageManager) != null) {
+                pickImage.launch(galleryIntent)
+            } else {
+                FlatterToast.showError(requireContext(), "No se encontró una aplicación de galería")
+            }
+        } catch (e: Exception) {
+            FlatterToast.showError(requireContext(), "Error al abrir galería: ${e.message}")
         }
     }
 
@@ -95,6 +126,9 @@ class ProfileFragment : Fragment() {
         db.collection("users").document(currentUser.uid)
             .get()
             .addOnSuccessListener { document ->
+                // Check if the fragment is still attached to avoid NPE
+                if (!isAdded || _binding == null) return@addOnSuccessListener
+
                 if (document.exists()) {
                     // Populate fields with user data
                     binding.etFullName.setText(document.getString("fullName") ?: "")
@@ -122,7 +156,10 @@ class ProfileFragment : Fragment() {
                 showLoading(false)
             }
             .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error al cargar perfil: ${e.message}", Toast.LENGTH_SHORT).show()
+                // Check if the fragment is still attached to avoid NPE
+                if (!isAdded || _binding == null) return@addOnFailureListener
+
+                FlatterToast.showError(requireContext(), "Error al cargar perfil: ${e.message}")
                 showLoading(false)
             }
     }
@@ -141,11 +178,17 @@ class ProfileFragment : Fragment() {
         db.collection("users").document(userId)
             .set(userData)
             .addOnSuccessListener {
+                // Check if the fragment is still attached to avoid NPE
+                if (!isAdded || _binding == null) return@addOnSuccessListener
+
                 // Profile created successfully, fields already empty
                 binding.etEmail.setText(email)
             }
             .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error al crear perfil: ${e.message}", Toast.LENGTH_SHORT).show()
+                // Check if the fragment is still attached to avoid NPE
+                if (!isAdded || _binding == null) return@addOnFailureListener
+
+                FlatterToast.showError(requireContext(), "Error al crear perfil: ${e.message}")
             }
     }
 
@@ -184,24 +227,39 @@ class ProfileFragment : Fragment() {
     }
 
     private fun uploadProfileImage(userId: String, onSuccess: (String) -> Unit) {
+        // Create a reference to the user's profile image in Firebase Storage
         val imageRef = storage.reference.child("profile_images/$userId.jpg")
 
         profileImageUri?.let { uri ->
+            // Check if the fragment is still attached to avoid NPE
+            if (!isAdded || _binding == null) return@let
+
+            // Show progress indicator
+            binding.progressBar.visibility = View.VISIBLE
+
+            // Upload the image to Firebase Storage
             imageRef.putFile(uri)
                 .addOnSuccessListener {
-                    // Get download URL
+                    // Get download URL after successful upload
                     imageRef.downloadUrl
                         .addOnSuccessListener { downloadUri ->
+                            // Call the onSuccess callback with the download URL
                             onSuccess(downloadUri.toString())
                         }
                         .addOnFailureListener { e ->
-                            Toast.makeText(requireContext(), "Error al obtener URL de imagen: ${e.message}", Toast.LENGTH_SHORT).show()
+                            // Check if the fragment is still attached to avoid NPE
+                            if (!isAdded || _binding == null) return@addOnFailureListener
+
                             showLoading(false)
+                            FlatterToast.showError(requireContext(), "Error al obtener URL de imagen: ${e.message}")
                         }
                 }
                 .addOnFailureListener { e ->
-                    Toast.makeText(requireContext(), "Error al subir imagen: ${e.message}", Toast.LENGTH_SHORT).show()
+                    // Check if the fragment is still attached to avoid NPE
+                    if (!isAdded || _binding == null) return@addOnFailureListener
+
                     showLoading(false)
+                    FlatterToast.showError(requireContext(), "Error al subir imagen: ${e.message}")
                 }
         }
     }
@@ -215,6 +273,9 @@ class ProfileFragment : Fragment() {
         maxBudgetStr: String,
         imageUrl: String?
     ) {
+        // Check if the fragment is still attached to avoid NPE
+        if (!isAdded || _binding == null) return
+
         // Convert budget to double or 0.0 if empty
         val maxBudget = maxBudgetStr.toDoubleOrNull() ?: 0.0
 
@@ -237,11 +298,21 @@ class ProfileFragment : Fragment() {
         db.collection("users").document(userId)
             .update(userUpdates as Map<String, Any>)
             .addOnSuccessListener {
-                Toast.makeText(requireContext(), "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
+                // Check if the fragment is still attached to avoid NPE
+                if (!isAdded || _binding == null) return@addOnSuccessListener
+
+                FlatterToast.showSuccess(requireContext(), "Perfil actualizado correctamente")
+
+                // Reset the profile image URI since we've processed it
+                profileImageUri = null
+
                 showLoading(false)
             }
             .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error al actualizar perfil: ${e.message}", Toast.LENGTH_SHORT).show()
+                // Check if the fragment is still attached to avoid NPE
+                if (!isAdded || _binding == null) return@addOnFailureListener
+
+                FlatterToast.showError(requireContext(), "Error al actualizar perfil: ${e.message}")
                 showLoading(false)
             }
     }
@@ -253,19 +324,23 @@ class ProfileFragment : Fragment() {
 
     private fun navigateToLogin() {
         // Import the correct LoginActivity class based on your package structure
-        val intent = Intent(requireContext(), com.example.flatter.loginVista.LoginActivity::class.java)
+        val intent = Intent(requireContext(), LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         requireActivity().finish()
     }
 
     private fun showLoading(isLoading: Boolean) {
+        // Check if the fragment is still attached to avoid NPE
+        if (!isAdded || _binding == null) return
+
         binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
         binding.btnSaveProfile.isEnabled = !isLoading
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // Important: clear the binding reference to avoid memory leaks
         _binding = null
     }
 }

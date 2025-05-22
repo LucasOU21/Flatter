@@ -1,19 +1,25 @@
 package com.example.flatter.homeVista
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.flatter.R
+import com.example.flatter.chatVista.ContactDialog
 import com.example.flatter.databinding.FragmentHomeBinding
-import com.example.flatter.listingVista.ListingManager
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.text.NumberFormat
 import java.util.Locale
+import com.example.flatter.utils.FlatterToast
 
 class HomeFragment : Fragment() {
 
@@ -24,6 +30,8 @@ class HomeFragment : Fragment() {
     private var currentListingIndex = 0
     private var listings = mutableListOf<ListingModel>()
     private val db = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
+    private val TAG = "HomeFragment"
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -37,14 +45,26 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        //Configure buttons
+        // Add debug log
+        Log.d(TAG, "onViewCreated called")
+
+        // Configure buttons
         setupButtons()
 
-        //Load listings from Firebase
+        // Load listings from Firebase
         loadListingsFromFirebase()
-
     }
 
+    override fun onResume() {
+        super.onResume()
+
+        // Reload listings when returning to this fragment
+        // This ensures we get updated data after deleting chats
+        if (isAdded && _binding != null) {
+            isInitialLoad = true
+            loadListingsFromFirebase()
+        }
+    }
 
     private fun setupButtons() {
         // Reject button
@@ -67,53 +87,206 @@ class HomeFragment : Fragment() {
             if (listings.isNotEmpty() && currentListingIndex < listings.size) {
                 val currentListing = listings[currentListingIndex]
 
+                // Check if user is logged in
+                if (auth.currentUser == null) {
+                    Toast.makeText(
+                        requireContext(),
+                        "Debes iniciar sesión para contactar",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setOnClickListener
+                }
+
                 // Save this listing as "liked" in Firestore
                 saveLikedListing(currentListing.id)
 
-                // Show match message
-                Toast.makeText(
-                    requireContext(),
-                    "¡Coincidencia! Ponte en contacto con ${currentListing.userName}",
-                    Toast.LENGTH_SHORT
-                ).show()
-
-                // Move to next listing
-                currentListingIndex++
-
-                if (currentListingIndex < listings.size) {
-                    displayCurrentListing()
-                } else {
-                    // No more listings, show message
-                    showNoMoreListingsMessage()
-                }
+                // Show contact dialog
+                showContactDialog(currentListing)
             }
         }
     }
 
+    private fun showContactDialog(listing: ListingModel) {
+        val dialog = ContactDialog(
+            requireContext(),
+            listing,
+            viewLifecycleOwner.lifecycleScope
+        ) {
+            // Instead of regular toast
+            FlatterToast.showSuccess(requireContext(), "Redirigiendo a chats...")
+            navigateToChatsFragment()
+        }
+        dialog.show()
+    }
+
+    private fun navigateToChatsFragment() {
+        // Navigate to Chats fragment using Bottom Navigation
+        val bottomNavigation = requireActivity().findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(
+            R.id.bottom_navigation
+        )
+        bottomNavigation.selectedItemId = R.id.navigation_chats
+    }
+
+    // Store the last document for pagination
+    private var lastVisibleDocument: com.google.firebase.firestore.DocumentSnapshot? = null
+
+    // Flag to track if we're loading the first page or paginating
+    private var isInitialLoad = true
+
     private fun loadListingsFromFirebase() {
-        showLoading(true)
+        // Only clear listings if this is the initial load (not pagination)
+        if (isInitialLoad) {
+            showLoading(true)
+            listings.clear()
+            lastVisibleDocument = null
+            currentListingIndex = 0
+        }
 
-        // Clear existing listings
-        listings.clear()
+        // Get current user ID
+        val currentUserId = auth.currentUser?.uid
 
-        // Query Firestore for listings
-        db.collection("listings")
-            .orderBy("createdAt", Query.Direction.DESCENDING) // Most recent first
-            .limit(20) // Limit to 20 listings for performance
-            .get()
+        // If user is not logged in, load all listings
+        if (currentUserId == null) {
+            loadAllListings()
+            return
+        }
+
+        // Load user profile to get max budget
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val userDoc = db.collection("users")
+                    .document(currentUserId)
+                    .get()
+                    .await()
+
+                val maxBudget = userDoc.getDouble("maxBudget") ?: 0.0
+                Log.d(TAG, "User max budget: $maxBudget")
+
+                // If maxBudget is 0, load all listings (no budget filtering)
+                if (maxBudget <= 0) {
+                    Log.d(TAG, "No budget set, loading all listings")
+                    loadAllListings()
+                } else {
+                    // Load filtered listings by budget
+                    loadFilteredListings(maxBudget)
+                }
+            } catch (e: Exception) {
+                showLoading(false)
+                FlatterToast.showError(
+                    requireContext(),
+                    "Error al cargar perfil: ${e.message}"
+                )
+                loadAllListings()
+            }
+        }
+    }
+
+    private fun loadAllListings() {
+        // Build query for listings without any filtering
+        val query = db.collection("listings")
+            .limit(20) // Get more listings for better random selection
+
+        // Apply pagination if not initial load
+        if (!isInitialLoad && lastVisibleDocument != null) {
+            // Need to create a new query with startAfter
+            val paginatedQuery = query.startAfter(lastVisibleDocument!!)
+            executeListingsQuery(paginatedQuery)
+        } else {
+            executeListingsQuery(query)
+        }
+    }
+
+    private fun loadFilteredListings(maxBudget: Double) {
+        // Get current user ID
+        val currentUserId = auth.currentUser?.uid ?: return
+
+        try {
+            // IMPORTANT: Firestore only allows one inequality filter per query
+            // We'll fetch listings and do client-side filtering
+
+            // Base query for listings - only include basic filtering that won't cause index errors
+            val query = db.collection("listings")
+                .limit(50) // Get more listings since we'll filter some out client-side
+
+            // Apply pagination if not initial load
+            if (!isInitialLoad && lastVisibleDocument != null) {
+                // Need to create a new query with startAfter
+                val paginatedQuery = query.startAfter(lastVisibleDocument!!)
+                executeListingsQuery(paginatedQuery, currentUserId, maxBudget)
+            } else {
+                executeListingsQuery(query, currentUserId, maxBudget)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error with filtered query: ${e.message}")
+
+            // Load all listings as fallback and filter client-side
+            val fallbackQuery = db.collection("listings")
+                .limit(50)
+
+            if (!isInitialLoad && lastVisibleDocument != null) {
+                val paginatedFallbackQuery = fallbackQuery.startAfter(lastVisibleDocument!!)
+                executeListingsQuery(paginatedFallbackQuery, currentUserId, maxBudget)
+            } else {
+                executeListingsQuery(fallbackQuery, currentUserId, maxBudget)
+            }
+        }
+    }
+
+    private fun executeListingsQuery(
+        query: Query,
+        currentUserId: String? = null,
+        maxBudget: Double = 0.0
+    ) {
+        Log.d(TAG, "Executing query with maxBudget: $maxBudget")
+
+        query.get()
             .addOnSuccessListener { documents ->
+                Log.d(TAG, "Query returned ${documents.size()} documents")
+
                 if (documents.isEmpty) {
-                    showNoListingsMessage()
+                    if (isInitialLoad) {
+                        showNoListingsMessage()
+                    } else {
+                        Toast.makeText(
+                            requireContext(),
+                            "No hay más listados disponibles",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    showLoading(false)
                     return@addOnSuccessListener
                 }
 
+                // Save the last document for pagination
+                if (documents.size() > 0) {
+                    lastVisibleDocument = documents.documents[documents.size() - 1]
+                }
+
                 // Parse documents into ListingModel objects
+                val tempListings = mutableListOf<ListingModel>()
+                var addedCount = 0
                 for (document in documents) {
                     try {
                         val id = document.getString("id") ?: document.id
+                        val userId = document.getString("userId") ?: ""
+                        val price = document.getDouble("price") ?: 0.0
+
+                        // Manual filtering based on our criteria:
+
+                        // 1. Skip user's own listings
+                        if (currentUserId != null && userId == currentUserId) {
+                            Log.d(TAG, "Skipping own listing: $id")
+                            continue
+                        }
+
+                        // 2. Skip if price is above user's max budget (only if maxBudget > 0)
+                        if (maxBudget > 0 && price > maxBudget) {
+                            Log.d(TAG, "Skipping listing $id because price $price is above budget $maxBudget")
+                            continue
+                        }
+
                         val title = document.getString("title") ?: ""
                         val description = document.getString("description") ?: ""
-                        val price = document.getDouble("price") ?: 0.0
                         val location = document.getString("location") ?: ""
                         val bedrooms = document.getLong("bedrooms")?.toInt() ?: 1
                         val bathrooms = document.getLong("bathrooms")?.toInt() ?: 1
@@ -122,7 +295,6 @@ class HomeFragment : Fragment() {
                         // Get image URLs (might be stored as an array)
                         val imagesList = document.get("imageUrls") as? List<String> ?: listOf()
 
-                        val userId = document.getString("userId") ?: ""
                         val userName = document.getString("userName") ?: "Usuario"
                         val userProfileImageUrl = document.getString("userProfileImageUrl") ?: ""
                         val publishedDate = document.getString("publishedDate") ?: ""
@@ -143,31 +315,79 @@ class HomeFragment : Fragment() {
                             publishedDate = publishedDate
                         )
 
-                        listings.add(listing)
+                        tempListings.add(listing)
+                        addedCount++
+                        Log.d(TAG, "Added listing: $id")
                     } catch (e: Exception) {
                         // Skip any malformed documents
+                        Log.e(TAG, "Error parsing document: ${e.message}")
                         continue
                     }
                 }
 
-                // Show the first listing
-                if (listings.isNotEmpty()) {
-                    currentListingIndex = 0
-                    displayCurrentListing()
+                // Always randomize the order of the listings
+                tempListings.shuffle()
+                Log.d(TAG, "Shuffled the listings for random order")
+
+                if (isInitialLoad) {
+                    // Replace all listings with the new ones if initial load
+                    listings.clear()
+                    listings.addAll(tempListings)
                 } else {
-                    showNoListingsMessage()
+                    // Add new listings to the existing list if paginating
+                    listings.addAll(tempListings)
+                    // Shuffle again to mix old and new listings
+                    listings.shuffle()
+                    Log.d(TAG, "Reshuffled all listings after pagination")
                 }
 
+                Log.d(TAG, "Processed ${documents.size()} documents, added $addedCount listings. Total listings now: ${listings.size}")
+
+                // Show the first listing if initial load, or keep current index if paginating
+                if (listings.isNotEmpty()) {
+                    if (isInitialLoad) {
+                        currentListingIndex = 0
+                        displayCurrentListing()
+                    } else if (addedCount > 0) {
+                        // Continue showing the current listing
+                        displayCurrentListing()
+                    } else {
+                        // If we didn't add any new listings after filtering
+                        Toast.makeText(
+                            requireContext(),
+                            "No hay más anuncios disponibles",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    Log.d(TAG, "No listings to display after filtering")
+                    if (isInitialLoad) {
+                        showNoListingsMessage()
+                    } else {
+                        // If pagination didn't yield any new listings
+                        Toast.makeText(
+                            requireContext(),
+                            "No hay más anuncios disponibles",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+
+                // Set initialLoad to false after first load
+                isInitialLoad = false
                 showLoading(false)
             }
             .addOnFailureListener { e ->
+                Log.e(TAG, "Error loading listings: ${e.message}")
                 Toast.makeText(
                     requireContext(),
                     "Error al cargar listados: ${e.message}",
                     Toast.LENGTH_SHORT
                 ).show()
                 showLoading(false)
-                showNoListingsMessage()
+                if (isInitialLoad) {
+                    showNoListingsMessage()
+                }
             }
     }
 
@@ -269,9 +489,8 @@ class HomeFragment : Fragment() {
     }
 
     private fun saveLikedListing(listingId: String) {
-        val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
+        val currentUser = FirebaseAuth.getInstance().currentUser ?: return
 
-        // Save to "likes" collection
         val likeData = hashMapOf(
             "userId" to currentUser.uid,
             "listingId" to listingId,
@@ -281,14 +500,12 @@ class HomeFragment : Fragment() {
         db.collection("likes")
             .add(likeData)
             .addOnSuccessListener {
-                // Success, already handled in UI
+                // Use custom success toast
+                FlatterToast.showSuccess(requireContext(), "¡Anuncio guardado!")
             }
             .addOnFailureListener { e ->
-                Toast.makeText(
-                    requireContext(),
-                    "Error al guardar like: ${e.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
+                // Use custom error toast
+                FlatterToast.showError(requireContext(), "Error al guardar: ${e.message}")
             }
     }
 
@@ -313,12 +530,23 @@ class HomeFragment : Fragment() {
         ).show()
     }
 
+    // Helper function for loading more listings
     private fun loadMoreListings() {
-        // Here you could implement pagination to load more listings
-        // For now we'll just show a message
+        // If we're already loading, don't trigger another load
+        if (binding.progressBar.visibility == View.VISIBLE) {
+            return
+        }
+
         Toast.makeText(requireContext(), "Buscando más propiedades...", Toast.LENGTH_SHORT).show()
 
-        // TODO: Implement pagination logic
+        // Set isInitialLoad to false since we're paginating
+        isInitialLoad = false
+
+        // Show loading indicator
+        showLoading(true)
+
+        // Reload listings with pagination
+        loadListingsFromFirebase()
     }
 
     private fun showLoading(isLoading: Boolean) {

@@ -1,16 +1,15 @@
 package com.example.flatter.homeVista
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import com.example.flatter.ChatsFragment
+import com.example.flatter.chatVista.ChatsFragment
 import com.example.flatter.ProfileFragment
 import com.example.flatter.R
 import com.example.flatter.databinding.ActivityHomeBinding
-import com.example.flatter.listingVista.CreateListingActivity
 import com.example.flatter.listingVista.ListingManagerFragment
+import com.example.flatter.utils.FlatterToast
 import com.google.firebase.auth.FirebaseAuth
 
 class HomeActivity : AppCompatActivity() {
@@ -38,7 +37,7 @@ class HomeActivity : AppCompatActivity() {
                             loadFragment(ListingManagerFragment())
                             true
                         } else {
-                            Toast.makeText(this, "Debes iniciar sesión para gestionar anuncios", Toast.LENGTH_SHORT).show()
+                            FlatterToast.showError(this, "Debes iniciar sesión para gestionar anuncios")
                             false
                         }
                     }
