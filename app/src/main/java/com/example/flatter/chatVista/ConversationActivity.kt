@@ -55,7 +55,7 @@ class ConversationActivity : AppCompatActivity() {
 
         // Check if we have valid data
         if (chatId.isEmpty() || otherUserId.isEmpty()) {
-            Toast.makeText(this, "Error: Chat no válido", Toast.LENGTH_SHORT).show()
+            FlatterToast.showError(this, "Error: Chat no válido")
             finish()
             return
         }

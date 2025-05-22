@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.flatter.databinding.FragmentChatsBinding
+import com.example.flatter.utils.FlatterToast
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -127,7 +128,7 @@ class ChatsFragment : Fragment() {
             .setNegativeButton("Cancelar chat") { _, _ ->
                 lifecycleScope.launch {
                     chatService.updateChatStatus(chatPreview.chatId, "cancelled")
-                    Toast.makeText(requireContext(), "Chat cancelado", Toast.LENGTH_SHORT).show()
+                    FlatterToast.showSuccess(requireContext(), "Chat cancelado")
                 }
             }
             .show()
@@ -142,7 +143,7 @@ class ChatsFragment : Fragment() {
             .setPositiveButton("Eliminar") { _, _ ->
                 lifecycleScope.launch {
                     chatService.deleteChat(chatPreview.chatId)
-                    Toast.makeText(requireContext(), "Chat eliminado", Toast.LENGTH_SHORT).show()
+                    FlatterToast.showSuccess(requireContext(), "Chat eliminado")
                 }
             }
             .setNegativeButton("Volver", null)
@@ -194,9 +195,9 @@ class ChatsFragment : Fragment() {
         lifecycleScope.launch {
             val success = chatService.deleteChat(chatId)
             if (success) {
-                Toast.makeText(requireContext(), "Chat eliminado", Toast.LENGTH_SHORT).show()
+                FlatterToast.showSuccess(requireContext(), "Chat eliminado")
             } else {
-                Toast.makeText(requireContext(), "Error al eliminar chat", Toast.LENGTH_SHORT).show()
+                FlatterToast.showError(requireContext(), "Error al eliminar chat")
             }
         }
     }

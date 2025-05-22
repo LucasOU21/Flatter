@@ -9,6 +9,7 @@ import com.example.flatter.ProfileFragment
 import com.example.flatter.R
 import com.example.flatter.databinding.ActivityHomeBinding
 import com.example.flatter.listingVista.ListingManagerFragment
+import com.example.flatter.utils.FlatterToast
 import com.google.firebase.auth.FirebaseAuth
 
 class HomeActivity : AppCompatActivity() {
@@ -36,7 +37,7 @@ class HomeActivity : AppCompatActivity() {
                             loadFragment(ListingManagerFragment())
                             true
                         } else {
-                            Toast.makeText(this, "Debes iniciar sesión para gestionar anuncios", Toast.LENGTH_SHORT).show()
+                            FlatterToast.showError(this, "Debes iniciar sesión para gestionar anuncios")
                             false
                         }
                     }

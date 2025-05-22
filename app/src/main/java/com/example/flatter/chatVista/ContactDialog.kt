@@ -12,6 +12,7 @@ import com.bumptech.glide.Glide
 import com.example.flatter.R
 import com.example.flatter.databinding.DialogContactBinding
 import com.example.flatter.homeVista.ListingModel
+import com.example.flatter.utils.FlatterToast
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
@@ -76,7 +77,7 @@ class ContactDialog(
             if (message.isNotEmpty()) {
                 sendMessage(message)
             } else {
-                Toast.makeText(context, "Por favor, escribe un mensaje", Toast.LENGTH_SHORT).show()
+                FlatterToast.showError(context, "Por favor, escribe un mensaje")
             }
         }
 
@@ -98,14 +99,14 @@ class ContactDialog(
 
     private fun sendMessage(messageText: String) {
         if (messageText.isBlank()) {
-            Toast.makeText(context, "Por favor, introduce un mensaje", Toast.LENGTH_SHORT).show()
+            FlatterToast.showError(context, "Por favor, introduce un mensaje")
             return
         }
 
         dismiss() // Close dialog
 
         // Show loading message
-        Toast.makeText(context, "Enviando mensaje...", Toast.LENGTH_SHORT).show()
+        FlatterToast.showShort(context, "Enviando mensaje...")
 
         // Start chat with listing owner
         lifecycleScope.launch {
@@ -122,7 +123,7 @@ class ContactDialog(
 
                 if (success) {
                     // Show success message
-                    Toast.makeText(context, "Mensaje enviado con éxito", Toast.LENGTH_SHORT).show()
+                    FlatterToast.showSuccess(context, "Mensaje enviado con éxito")
 
                     // Open conversation immediately
                     val intent = Intent(context, ConversationActivity::class.java).apply {
@@ -139,10 +140,10 @@ class ContactDialog(
                     // Navigate to chats fragment
                     onMessageSent()
                 } else {
-                    Toast.makeText(context, "Error al enviar mensaje. Inténtalo de nuevo.", Toast.LENGTH_SHORT).show()
+                    FlatterToast.showError(context, "Error al enviar mensaje. Inténtalo de nuevo.")
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "Error al enviar mensaje: ${e.message}", Toast.LENGTH_SHORT).show()
+                FlatterToast.showError(context, "Error al enviar mensaje: ${e.message}")
             }
         }
     }

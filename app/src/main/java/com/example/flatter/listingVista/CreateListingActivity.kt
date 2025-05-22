@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.flatter.R
 import com.example.flatter.databinding.ActivityCreateListingBinding
 import com.example.flatter.homeVista.HomeActivity
+import com.example.flatter.utils.FlatterToast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
@@ -122,7 +123,7 @@ class CreateListingActivity : AppCompatActivity() {
 
         // Validate images
         if (selectedImages.isEmpty()) {
-            Toast.makeText(this, "Añade al menos una foto", Toast.LENGTH_SHORT).show()
+            FlatterToast.showError(this, "Añade al menos una foto")
             isValid = false
         }
 
@@ -135,7 +136,7 @@ class CreateListingActivity : AppCompatActivity() {
 
         val userId = auth.currentUser?.uid
         if (userId == null) {
-            Toast.makeText(this, "Debes iniciar sesión para publicar", Toast.LENGTH_SHORT).show()
+            FlatterToast.showError(this, "Debes iniciar sesión para publicar")
             binding.progressBar.visibility = View.GONE
             binding.btnPublish.isEnabled = true
             return
@@ -173,7 +174,7 @@ class CreateListingActivity : AppCompatActivity() {
                     }
                 }
                 .addOnFailureListener { e ->
-                    Toast.makeText(this, "Error al subir imagen: ${e.message}", Toast.LENGTH_SHORT).show()
+                    FlatterToast.showError(this, "Error al subir imagen: ${e.message}")
                     binding.progressBar.visibility = View.GONE
                     binding.btnPublish.isEnabled = true
                 }
@@ -231,7 +232,7 @@ class CreateListingActivity : AppCompatActivity() {
                 db.collection("listings").document(listingId)
                     .set(listing)
                     .addOnSuccessListener {
-                        Toast.makeText(this, "¡Anuncio publicado con éxito!", Toast.LENGTH_LONG).show()
+                        FlatterToast.showSuccess(this, "¡Anuncio publicado con éxito!")
 
                         // Return to home activity
                         val intent = Intent(this, HomeActivity::class.java)
@@ -240,13 +241,13 @@ class CreateListingActivity : AppCompatActivity() {
                         finish()
                     }
                     .addOnFailureListener { e ->
-                        Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        FlatterToast.showError(this, "Error: ${e.message}")
                         binding.progressBar.visibility = View.GONE
                         binding.btnPublish.isEnabled = true
                     }
             }
             .addOnFailureListener { e ->
-                Toast.makeText(this, "Error al obtener información del usuario: ${e.message}", Toast.LENGTH_SHORT).show()
+                FlatterToast.showError(this, "Error al obtener información del usuario: ${e.message}")
                 binding.progressBar.visibility = View.GONE
                 binding.btnPublish.isEnabled = true
             }

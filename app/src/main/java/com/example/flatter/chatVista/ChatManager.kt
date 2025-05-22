@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.lifecycle.LifecycleCoroutineScope
+import com.example.flatter.utils.FlatterToast
 import kotlinx.coroutines.launch
 
 class ChatManager(
@@ -19,10 +20,10 @@ class ChatManager(
     ) {
         lifecycleScope.launch {
             try {
-                // Create or get existing chat
+
                 val chatId = chatService.getOrCreateChat(otherUserId)
 
-                // Open conversation activity
+
                 val intent = Intent(context, ConversationActivity::class.java).apply {
                     putExtra("CHAT_ID", chatId)
                     putExtra("OTHER_USER_NAME", otherUserName)
@@ -31,7 +32,7 @@ class ChatManager(
                 }
                 context.startActivity(intent)
             } catch (e: Exception) {
-                Toast.makeText(context, "Error starting chat: ${e.message}", Toast.LENGTH_SHORT).show()
+                FlatterToast.showError(context, "Error starting chat: ${e.message}")
             }
         }
     }
