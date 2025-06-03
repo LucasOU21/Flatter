@@ -299,8 +299,6 @@ class ConversationActivity : AppCompatActivity() {
         // Clear input field
         binding.etMessage.setText("")
 
-        // Show loading state
-        binding.progressBar.visibility = View.VISIBLE
 
         // Send message
         lifecycleScope.launch {
@@ -312,7 +310,6 @@ class ConversationActivity : AppCompatActivity() {
                 chatService.updateChatStatus(chatId, "accepted")
             }
 
-            binding.progressBar.visibility = View.GONE
 
             if (!success) {
                 // Replace with custom error toast
