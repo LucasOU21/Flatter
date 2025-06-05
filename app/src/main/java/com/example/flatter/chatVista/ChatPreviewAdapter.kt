@@ -46,11 +46,17 @@ class ChatPreviewAdapter(
             .circleCrop()
             .into(holder.ivProfilePic)
 
-        // Set user name - with listing title if available
+        // Set user name with user type and listing title if available
+        val userTypeLabel = when (chatPreview.otherUserType.lowercase()) {
+            "inquilino" -> "Inquilino"
+            "propietario" -> "Propietario"
+            else -> "Propietario" // Default
+        }
+
         val userName = if (chatPreview.listingTitle.isNotEmpty()) {
-            "${chatPreview.otherUserName} - ${chatPreview.listingTitle}"
+            "${chatPreview.otherUserName} ($userTypeLabel) - ${chatPreview.listingTitle}"
         } else {
-            chatPreview.otherUserName
+            "${chatPreview.otherUserName} ($userTypeLabel)"
         }
         holder.tvUserName.text = userName
 

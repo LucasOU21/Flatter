@@ -3,6 +3,7 @@ package com.example.flatter.listingVista
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
@@ -197,11 +198,15 @@ class CreateListingActivity : AppCompatActivity() {
             else -> "Apartamento" // Default
         }
 
-        // Get user info
+        // Get user info including user type - ALWAYS fetch user type
         db.collection("users").document(userId).get()
             .addOnSuccessListener { document ->
                 val userName = document.getString("fullName") ?: "Usuario"
                 val userProfileImageUrl = document.getString("profileImageUrl") ?: ""
+                val userType = document.getString("userType") ?: "propietario" // Get user type with fallback
+
+                // Debug log to verify user type retrieval
+                Log.d("CreateListingActivity", "Creating listing for user: $userName with userType: '$userType'")
 
                 // Create listing object
                 val listingId = UUID.randomUUID().toString()
@@ -223,15 +228,27 @@ class CreateListingActivity : AppCompatActivity() {
                     "userId" to userId,
                     "userName" to userName,
                     "userProfileImageUrl" to userProfileImageUrl,
+                    "userType" to userType, // CRITICAL: Always include user type in listing
                     "publishedDate" to publishedDate,
                     "propertyType" to propertyType,
-                    "createdAt" to Date()
+                    "createdAt" to Date(),
+                    "status" to "active" // Add status for listing management
                 )
+
+                // Debug log the complete listing object
+                Log.d("CreateListingActivity", "Complete listing object: $listing")
 
                 // Save to Firestore
                 db.collection("listings").document(listingId)
                     .set(listing)
                     .addOnSuccessListener {
+                        // Verify the listing was saved with user type
+                        db.collection("listings").document(listingId).get()
+                            .addOnSuccessListener { savedDoc ->
+                                val savedUserType = savedDoc.getString("userType")
+                                Log.d("CreateListingActivity", "Verification - Listing saved with userType: '$savedUserType'")
+                            }
+
                         FlatterToast.showSuccess(this, "¡Anuncio publicado con éxito!")
 
                         // Return to home activity
@@ -248,6 +265,7 @@ class CreateListingActivity : AppCompatActivity() {
             }
             .addOnFailureListener { e ->
                 FlatterToast.showError(this, "Error al obtener información del usuario: ${e.message}")
+                Log.e("CreateListingActivity", "Error fetching user info: ${e.message}")
                 binding.progressBar.visibility = View.GONE
                 binding.btnPublish.isEnabled = true
             }

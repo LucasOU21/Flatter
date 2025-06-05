@@ -13,5 +13,6 @@ data class ListingModel(
     val userId: String,
     val userName: String,
     val userProfileImageUrl: String,
-    val publishedDate: String
+    val publishedDate: String,
+    val userType: String = "propietario"
 )

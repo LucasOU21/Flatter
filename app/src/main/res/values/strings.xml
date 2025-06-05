@@ -9,6 +9,10 @@
     <string name="profile">Perfil</string>
     <string name="manage">Gestionar</string>
 
+    <!-- User Types -->
+    <string name="user_type_owner">Propietario</string>
+    <string name="user_type_renter">Inquilino</string>
+
     <!-- Home Screen -->
     <string name="rechazar">Rechazar</string>
     <string name="aceptar">Aceptar</string>

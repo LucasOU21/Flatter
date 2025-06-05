@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.util.Log
 import android.view.MenuItem
 import android.view.View
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -30,6 +29,7 @@ class ConversationActivity : AppCompatActivity() {
     private var otherUserName: String = ""
     private var otherUserId: String = ""
     private var otherUserProfilePic: String = ""
+    private var otherUserType: String = ""
     private var listingId: String = ""
     private var listingTitle: String = ""
     private var isNewChat: Boolean = false
@@ -49,9 +49,15 @@ class ConversationActivity : AppCompatActivity() {
         otherUserName = intent.getStringExtra("OTHER_USER_NAME") ?: "Usuario"
         otherUserId = intent.getStringExtra("OTHER_USER_ID") ?: ""
         otherUserProfilePic = intent.getStringExtra("OTHER_USER_PROFILE_PIC") ?: ""
+        otherUserType = intent.getStringExtra("OTHER_USER_TYPE") ?: ""
         listingId = intent.getStringExtra("LISTING_ID") ?: ""
         listingTitle = intent.getStringExtra("LISTING_TITLE") ?: "Anuncio"
         isNewChat = intent.getBooleanExtra("IS_NEW_CHAT", false)
+
+        // If user type wasn't passed via intent, fetch it from Firestore
+        if (otherUserType.isEmpty() && otherUserId.isNotEmpty()) {
+            fetchUserType()
+        }
 
         // Check if we have valid data
         if (chatId.isEmpty() || otherUserId.isEmpty()) {
@@ -121,6 +127,25 @@ class ConversationActivity : AppCompatActivity() {
         }
     }
 
+    private fun fetchUserType() {
+        lifecycleScope.launch {
+            try {
+                val userDoc = FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(otherUserId)
+                    .get()
+                    .await()
+
+                otherUserType = userDoc.getString("userType") ?: "propietario"
+                setupToolbar() // Update toolbar with user type
+            } catch (e: Exception) {
+                Log.e("ConversationActivity", "Error fetching user type: ${e.message}")
+                otherUserType = "propietario" // Default fallback
+                setupToolbar()
+            }
+        }
+    }
+
     private fun setupUiBasedOnRole() {
         Log.d("ConversationActivity", "Setting up UI - Status: $chatStatus, isListingOwner: $isListingOwner")
 
@@ -162,8 +187,20 @@ class ConversationActivity : AppCompatActivity() {
         // Hide default title
         supportActionBar?.setDisplayShowTitleEnabled(false)
 
-        // Set user name and listing title in our custom layout
+        // Set user name and user type in our custom layout
         binding.tvUserName.text = otherUserName
+
+        // Set user type badge
+        if (otherUserType.isNotEmpty()) {
+            binding.tvUserTypeBadgeToolbar.text = when (otherUserType.lowercase()) {
+                "inquilino" -> "Inquilino"
+                "propietario" -> "Propietario"
+                else -> "Propietario" // Default
+            }
+            binding.tvUserTypeBadgeToolbar.visibility = View.VISIBLE
+        } else {
+            binding.tvUserTypeBadgeToolbar.visibility = View.GONE
+        }
 
         // Show listing title if available
         if (listingTitle.isNotEmpty() && listingTitle != "Anuncio") {
@@ -299,7 +336,6 @@ class ConversationActivity : AppCompatActivity() {
         // Clear input field
         binding.etMessage.setText("")
 
-
         // Send message
         lifecycleScope.launch {
             val success = chatService.sendMessage(chatId, messageText)
@@ -309,7 +345,6 @@ class ConversationActivity : AppCompatActivity() {
                 Log.d("ConversationActivity", "Listing owner sent message, accepting chat")
                 chatService.updateChatStatus(chatId, "accepted")
             }
-
 
             if (!success) {
                 // Replace with custom error toast

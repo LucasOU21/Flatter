@@ -53,6 +53,8 @@ class HomeFragment : Fragment() {
 
         // Load listings from Firebase
         loadListingsFromFirebase()
+
+        debugUserTypesInFirestore()
     }
 
     override fun onResume() {
@@ -265,117 +267,145 @@ class HomeFragment : Fragment() {
                 // Parse documents into ListingModel objects
                 val tempListings = mutableListOf<ListingModel>()
                 var addedCount = 0
-                for (document in documents) {
-                    try {
-                        val id = document.getString("id") ?: document.id
-                        val userId = document.getString("userId") ?: ""
-                        val price = document.getDouble("price") ?: 0.0
 
-                        // Manual filtering based on our criteria:
+                // Create a list to track user data requests
+                val userDataTasks = mutableListOf<kotlinx.coroutines.Deferred<Pair<String, String?>>>()
 
-                        // 1. Skip user's own listings
-                        if (currentUserId != null && userId == currentUserId) {
-                            Log.d(TAG, "Skipping own listing: $id")
+                lifecycleScope.launch {
+                    for (document in documents) {
+                        try {
+                            val id = document.getString("id") ?: document.id
+                            val userId = document.getString("userId") ?: ""
+                            val price = document.getDouble("price") ?: 0.0
+
+                            // Manual filtering based on our criteria:
+                            // 1. Skip user's own listings
+                            if (currentUserId != null && userId == currentUserId) {
+                                Log.d(TAG, "Skipping own listing: $id")
+                                continue
+                            }
+
+                            // 2. Skip if price is above user's max budget (only if maxBudget > 0)
+                            if (maxBudget > 0 && price > maxBudget) {
+                                Log.d(TAG, "Skipping listing $id because price $price is above budget $maxBudget")
+                                continue
+                            }
+
+                            val title = document.getString("title") ?: ""
+                            val description = document.getString("description") ?: ""
+                            val location = document.getString("location") ?: ""
+                            val bedrooms = document.getLong("bedrooms")?.toInt() ?: 1
+                            val bathrooms = document.getLong("bathrooms")?.toInt() ?: 1
+                            val area = document.getLong("area")?.toInt() ?: 0
+
+                            // Get image URLs
+                            val imagesList = document.get("imageUrls") as? List<String> ?: listOf()
+
+                            val userName = document.getString("userName") ?: "Usuario"
+                            val userProfileImageUrl = document.getString("userProfileImageUrl") ?: ""
+                            val publishedDate = document.getString("publishedDate") ?: ""
+
+                            // Try to get user type from listing first, if not available fetch from user document
+                            var userType = document.getString("userType")
+
+                            if (userType.isNullOrEmpty() && userId.isNotEmpty()) {
+                                // Fetch user type from user document
+                                try {
+                                    val userDoc = db.collection("users").document(userId).get().await()
+                                    userType = userDoc.getString("userType") ?: "propietario"
+                                    Log.d(TAG, "Fetched user type for user $userId: $userType")
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Error fetching user type for user $userId: ${e.message}")
+                                    userType = "propietario" // Default fallback
+                                }
+                            }
+
+                            // Default to "propietario" if still null/empty
+                            if (userType.isNullOrEmpty()) {
+                                userType = "propietario"
+                            }
+
+                            Log.d(TAG, "Listing $id - User: $userName, UserType: $userType")
+
+                            val listing = ListingModel(
+                                id = id,
+                                title = title,
+                                description = description,
+                                price = price,
+                                location = location,
+                                bedrooms = bedrooms,
+                                bathrooms = bathrooms,
+                                area = area,
+                                imageUrls = imagesList,
+                                userId = userId,
+                                userName = userName,
+                                userProfileImageUrl = userProfileImageUrl,
+                                publishedDate = publishedDate,
+                                userType = userType
+                            )
+
+                            tempListings.add(listing)
+                            addedCount++
+                            Log.d(TAG, "Added listing: $id with userType: $userType")
+                        } catch (e: Exception) {
+                            // Skip any malformed documents
+                            Log.e(TAG, "Error parsing document: ${e.message}")
                             continue
                         }
+                    }
 
-                        // 2. Skip if price is above user's max budget (only if maxBudget > 0)
-                        if (maxBudget > 0 && price > maxBudget) {
-                            Log.d(TAG, "Skipping listing $id because price $price is above budget $maxBudget")
-                            continue
+                    // Always randomize the order of the listings
+                    tempListings.shuffle()
+                    Log.d(TAG, "Shuffled the listings for random order")
+
+                    if (isInitialLoad) {
+                        // Replace all listings with the new ones if initial load
+                        listings.clear()
+                        listings.addAll(tempListings)
+                    } else {
+                        // Add new listings to the existing list if paginating
+                        listings.addAll(tempListings)
+                        // Shuffle again to mix old and new listings
+                        listings.shuffle()
+                        Log.d(TAG, "Reshuffled all listings after pagination")
+                    }
+
+                    Log.d(TAG, "Processed ${documents.size()} documents, added $addedCount listings. Total listings now: ${listings.size}")
+
+                    // Show the first listing if initial load, or keep current index if paginating
+                    if (listings.isNotEmpty()) {
+                        if (isInitialLoad) {
+                            currentListingIndex = 0
+                            displayCurrentListing()
+                        } else if (addedCount > 0) {
+                            // Continue showing the current listing
+                            displayCurrentListing()
+                        } else {
+                            // If we didn't add any new listings after filtering
+                            Toast.makeText(
+                                requireContext(),
+                                "No hay más anuncios disponibles",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
-
-                        val title = document.getString("title") ?: ""
-                        val description = document.getString("description") ?: ""
-                        val location = document.getString("location") ?: ""
-                        val bedrooms = document.getLong("bedrooms")?.toInt() ?: 1
-                        val bathrooms = document.getLong("bathrooms")?.toInt() ?: 1
-                        val area = document.getLong("area")?.toInt() ?: 0
-
-                        // Get image URLs (might be stored as an array)
-                        val imagesList = document.get("imageUrls") as? List<String> ?: listOf()
-
-                        val userName = document.getString("userName") ?: "Usuario"
-                        val userProfileImageUrl = document.getString("userProfileImageUrl") ?: ""
-                        val publishedDate = document.getString("publishedDate") ?: ""
-
-                        val listing = ListingModel(
-                            id = id,
-                            title = title,
-                            description = description,
-                            price = price,
-                            location = location,
-                            bedrooms = bedrooms,
-                            bathrooms = bathrooms,
-                            area = area,
-                            imageUrls = imagesList,
-                            userId = userId,
-                            userName = userName,
-                            userProfileImageUrl = userProfileImageUrl,
-                            publishedDate = publishedDate
-                        )
-
-                        tempListings.add(listing)
-                        addedCount++
-                        Log.d(TAG, "Added listing: $id")
-                    } catch (e: Exception) {
-                        // Skip any malformed documents
-                        Log.e(TAG, "Error parsing document: ${e.message}")
-                        continue
-                    }
-                }
-
-                // Always randomize the order of the listings
-                tempListings.shuffle()
-                Log.d(TAG, "Shuffled the listings for random order")
-
-                if (isInitialLoad) {
-                    // Replace all listings with the new ones if initial load
-                    listings.clear()
-                    listings.addAll(tempListings)
-                } else {
-                    // Add new listings to the existing list if paginating
-                    listings.addAll(tempListings)
-                    // Shuffle again to mix old and new listings
-                    listings.shuffle()
-                    Log.d(TAG, "Reshuffled all listings after pagination")
-                }
-
-                Log.d(TAG, "Processed ${documents.size()} documents, added $addedCount listings. Total listings now: ${listings.size}")
-
-                // Show the first listing if initial load, or keep current index if paginating
-                if (listings.isNotEmpty()) {
-                    if (isInitialLoad) {
-                        currentListingIndex = 0
-                        displayCurrentListing()
-                    } else if (addedCount > 0) {
-                        // Continue showing the current listing
-                        displayCurrentListing()
                     } else {
-                        // If we didn't add any new listings after filtering
-                        Toast.makeText(
-                            requireContext(),
-                            "No hay más anuncios disponibles",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        Log.d(TAG, "No listings to display after filtering")
+                        if (isInitialLoad) {
+                            showNoListingsMessage()
+                        } else {
+                            // If pagination didn't yield any new listings
+                            Toast.makeText(
+                                requireContext(),
+                                "No hay más anuncios disponibles",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
-                } else {
-                    Log.d(TAG, "No listings to display after filtering")
-                    if (isInitialLoad) {
-                        showNoListingsMessage()
-                    } else {
-                        // If pagination didn't yield any new listings
-                        Toast.makeText(
-                            requireContext(),
-                            "No hay más anuncios disponibles",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
 
-                // Set initialLoad to false after first load
-                isInitialLoad = false
-                showLoading(false)
+                    // Set initialLoad to false after first load
+                    isInitialLoad = false
+                    showLoading(false)
+                }
             }
             .addOnFailureListener { e ->
                 Log.e(TAG, "Error loading listings: ${e.message}")
@@ -391,6 +421,7 @@ class HomeFragment : Fragment() {
             }
     }
 
+    // Updated displayCurrentListing method in HomeFragment.kt
     private fun displayCurrentListing() {
         if (listings.isEmpty() || currentListingIndex >= listings.size) {
             showNoMoreListingsMessage()
@@ -408,6 +439,41 @@ class HomeFragment : Fragment() {
         binding.tvDescription.text = listing.description
         binding.tvUserName.text = getString(R.string.publicado_por, listing.userName)
         binding.tvPublishedDate.text = getString(R.string.publicado_fecha, listing.publishedDate)
+
+        // Set user type badge with proper validation
+        val userTypeText = when (listing.userType.lowercase().trim()) {
+            "inquilino" -> {
+                Log.d(TAG, "Displaying INQUILINO badge for user: ${listing.userName}")
+                "Inquilino"
+            }
+            "propietario" -> {
+                Log.d(TAG, "Displaying PROPIETARIO badge for user: ${listing.userName}")
+                "Propietario"
+            }
+            else -> {
+                Log.w(TAG, "Unknown user type '${listing.userType}' for user: ${listing.userName}, defaulting to Propietario")
+                "Propietario" // Default
+            }
+        }
+
+        binding.tvUserTypeBadge.text = userTypeText
+
+        // Set user type badge background color based on type
+        val badgeBackground = when (listing.userType.lowercase().trim()) {
+            "inquilino" -> {
+                Log.d(TAG, "Setting RENTER badge background")
+                R.drawable.bg_user_type_badge_renter
+            }
+            "propietario" -> {
+                Log.d(TAG, "Setting OWNER badge background")
+                R.drawable.bg_user_type_badge_owner
+            }
+            else -> {
+                Log.d(TAG, "Setting DEFAULT badge background")
+                R.drawable.bg_user_type_badge_owner
+            }
+        }
+        binding.tvUserTypeBadge.setBackgroundResource(badgeBackground)
 
         // Format price
         val formattedPrice = NumberFormat.getCurrencyInstance(Locale("es", "ES"))
@@ -436,6 +502,9 @@ class HomeFragment : Fragment() {
 
         // Setup image carousel
         setupImageCarousel(listing.imageUrls)
+
+        // Debug log to verify user type is being set correctly
+        Log.d(TAG, "Current listing - User: ${listing.userName}, UserType: '${listing.userType}', Badge: $userTypeText")
     }
 
     private fun setupImageCarousel(imageUrls: List<String>) {
@@ -554,6 +623,49 @@ class HomeFragment : Fragment() {
         binding.btnAccept.isEnabled = !isLoading
         binding.btnReject.isEnabled = !isLoading
     }
+
+    private fun debugUserTypesInFirestore() {
+        lifecycleScope.launch {
+            try {
+                // Check all users in the database
+                val usersSnapshot = db.collection("users").get().await()
+                Log.d(TAG, "=== USER TYPE VERIFICATION ===")
+
+                for (userDoc in usersSnapshot.documents) {
+                    val userId = userDoc.id
+                    val userName = userDoc.getString("fullName") ?: "Unknown"
+                    val userType = userDoc.getString("userType")
+
+                    Log.d(TAG, "User: $userName (ID: $userId) - UserType: '$userType'")
+                }
+
+                // Check all listings in the database
+                val listingsSnapshot = db.collection("listings").get().await()
+                Log.d(TAG, "=== LISTING USER TYPE VERIFICATION ===")
+
+                for (listingDoc in listingsSnapshot.documents) {
+                    val listingId = listingDoc.id
+                    val title = listingDoc.getString("title") ?: "Unknown"
+                    val userName = listingDoc.getString("userName") ?: "Unknown"
+                    val userType = listingDoc.getString("userType")
+                    val userId = listingDoc.getString("userId") ?: ""
+
+                    Log.d(TAG, "Listing: $title by $userName (UserID: $userId) - UserType: '$userType'")
+
+                    // If listing doesn't have userType, fetch from user document
+                    if (userType.isNullOrEmpty() && userId.isNotEmpty()) {
+                        val userDoc = db.collection("users").document(userId).get().await()
+                        val actualUserType = userDoc.getString("userType")
+                        Log.d(TAG, "  -> Fetched from user doc: '$actualUserType'")
+                    }
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during verification: ${e.message}")
+            }
+        }
+    }
+
 
     override fun onDestroyView() {
         super.onDestroyView()

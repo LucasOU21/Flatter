@@ -34,7 +34,7 @@ class ChatService {
             if (!chatDoc.exists()) {
                 Log.d(TAG, "Creating new chat: $chatId between $currentUserId and $otherUserId")
 
-                // Get user data for chat previews
+                // Get user data for chat previews including user type
                 val currentUserData = db.collection("users").document(currentUserId).get().await()
                 val otherUserData = db.collection("users").document(otherUserId).get().await()
 
@@ -70,6 +70,7 @@ class ChatService {
                     "otherUserId" to otherUserId,
                     "otherUserName" to (otherUserData.getString("fullName") ?: "Usuario"),
                     "otherUserProfilePic" to (otherUserData.getString("profileImageUrl") ?: ""),
+                    "otherUserType" to (otherUserData.getString("userType") ?: "propietario"), // Add user type
                     "unreadCount" to 0,
                     "lastMessage" to "",
                     "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
@@ -89,6 +90,7 @@ class ChatService {
                     "otherUserId" to currentUserId,
                     "otherUserName" to (currentUserData.getString("fullName") ?: "Usuario"),
                     "otherUserProfilePic" to (currentUserData.getString("profileImageUrl") ?: ""),
+                    "otherUserType" to (currentUserData.getString("userType") ?: "propietario"), // Add user type
                     "unreadCount" to 0,
                     "lastMessage" to "",
                     "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
@@ -146,6 +148,7 @@ class ChatService {
 
                     val otherUserName = otherUserDoc.getString("fullName") ?: "Usuario"
                     val otherUserProfilePic = otherUserDoc.getString("profileImageUrl") ?: ""
+                    val otherUserType = otherUserDoc.getString("userType") ?: "propietario" // Get user type
 
                     // Create chat preview for this user - explicitly type as Map<String, Any>
                     val chatPreview = mapOf<String, Any>(
@@ -153,6 +156,7 @@ class ChatService {
                         "otherUserId" to otherUserId,
                         "otherUserName" to otherUserName,
                         "otherUserProfilePic" to otherUserProfilePic,
+                        "otherUserType" to otherUserType, // Add user type
                         "unreadCount" to 0,
                         "lastMessage" to "",
                         "lastMessageTimestamp" to com.google.firebase.Timestamp.now(),
@@ -318,6 +322,7 @@ class ChatService {
                             otherUserId = doc.getString("otherUserId") ?: "",
                             otherUserName = doc.getString("otherUserName") ?: "Usuario",
                             otherUserProfilePic = doc.getString("otherUserProfilePic") ?: "",
+                            otherUserType = doc.getString("otherUserType") ?: "propietario", // Include user type
                             unreadCount = doc.getLong("unreadCount")?.toInt() ?: 0,
                             lastMessage = doc.getString("lastMessage") ?: "",
                             lastMessageTimestamp = doc.getTimestamp("lastMessageTimestamp")
