@@ -5,6 +5,7 @@ data class ChatPreview(
     val otherUserId: String = "",
     val otherUserName: String = "",
     val otherUserProfilePic: String = "",
+    val otherUserType: String = "", // Add user type field
     val unreadCount: Int = 0,
     val lastMessage: String = "",
     val lastMessageTimestamp: com.google.firebase.Timestamp = com.google.firebase.Timestamp.now(),

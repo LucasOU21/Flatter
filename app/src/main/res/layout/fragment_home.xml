@@ -83,6 +83,26 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
+            <!-- User Type Badge -->
+            <TextView
+                android:id="@+id/tvUserTypeBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_user_type_badge"
+                android:elevation="10dp"
+                android:paddingStart="8dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="4dp"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toEndOf="@+id/ivUserProfile"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="Propietario" />
+
             <TextView
                 android:id="@+id/tvPrice"
                 android:layout_width="wrap_content"

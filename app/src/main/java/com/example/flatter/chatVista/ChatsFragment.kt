@@ -157,6 +157,7 @@ class ChatsFragment : Fragment() {
             putExtra("OTHER_USER_NAME", chatPreview.otherUserName)
             putExtra("OTHER_USER_ID", chatPreview.otherUserId)
             putExtra("OTHER_USER_PROFILE_PIC", chatPreview.otherUserProfilePic)
+            putExtra("OTHER_USER_TYPE", chatPreview.otherUserType) // Pass user type
             putExtra("IS_NEW_CHAT", chatPreview.lastMessage.isEmpty())
 
             // Add listing-related extras

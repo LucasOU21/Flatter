@@ -177,12 +177,19 @@ class RegisterActivity : AppCompatActivity() {
             }
     }
 
+    // Updated saveUserDataToFirestore method in RegisterActivity.kt
     private fun saveUserDataToFirestore(userId: String) {
         // Obtener los datos del formulario
         val username = binding.etUsername.text.toString().trim()
         val email = binding.etEmail.text.toString().trim()
         val phone = binding.etPhone.text.toString().trim()
+
+        // IMPORTANT: Make sure we're getting the correct user type
         val userType = if (binding.rbRenter.isChecked) "inquilino" else "propietario"
+
+        // Debug log to verify user type selection
+        Log.d(TAG, "Saving user with type: '$userType' for user: $username")
+        Log.d(TAG, "Renter checked: ${binding.rbRenter.isChecked}, Owner checked: ${binding.rbOwner.isChecked}")
 
         // Crear objeto de usuario para Firestore
         val user = hashMapOf(
@@ -190,24 +197,42 @@ class RegisterActivity : AppCompatActivity() {
             "fullName" to username, // Asegurar que el username también se guarde como fullName
             "email" to email,
             "phone" to phone,
-            "userType" to userType,
+            "userType" to userType, // Make sure this is being saved correctly
             "createdAt" to com.google.firebase.Timestamp.now(),
             "profileImageUrl" to "",
-            "bio" to ""
+            "bio" to "",
+            "maxBudget" to 0.0 // Add default budget
         )
+
+        // Debug log the complete user object
+        Log.d(TAG, "Complete user object being saved: $user")
 
         // Guardar en Firestore
         db.collection("users").document(userId)
             .set(user)
             .addOnSuccessListener {
                 showProgress(false)
-                FlatterToast.showSuccess(this, "¡Cuenta creada exitosamente!")
 
-                // Cerrar sesión del usuario para que tengan que iniciar sesión explícitamente
-                auth.signOut()
+                // Verify the user was saved correctly
+                db.collection("users").document(userId).get()
+                    .addOnSuccessListener { document ->
+                        val savedUserType = document.getString("userType")
+                        Log.d(TAG, "Verification - User saved with userType: '$savedUserType'")
 
-                // Volver a LoginActivity
-                finish() // Esto volverá al LoginActivity si está en la pila de actividades
+                        FlatterToast.showSuccess(this, "¡Cuenta creada exitosamente!")
+
+                        // Cerrar sesión del usuario para que tengan que iniciar sesión explícitamente
+                        auth.signOut()
+
+                        // Volver a LoginActivity
+                        finish() // Esto volverá al LoginActivity si está en la pila de actividades
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "Error verifying saved user: $e")
+                        FlatterToast.showSuccess(this, "¡Cuenta creada exitosamente!")
+                        auth.signOut()
+                        finish()
+                    }
             }
             .addOnFailureListener { e ->
                 showProgress(false)
