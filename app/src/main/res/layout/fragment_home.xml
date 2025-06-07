@@ -153,17 +153,42 @@
                         android:textSize="20sp"
                         tools:text="Habitación luminosa en Barcelona" />
 
-                    <TextView
-                        android:id="@+id/tvLocation"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:drawablePadding="8dp"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp"
-                        app:drawableStartCompat="@drawable/ic_location_img"
-                        app:drawableTint="@color/colorPrimary"
-                        tools:text="Eixample, Barcelona" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:id="@+id/tvLocation"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:drawablePadding="8dp"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp"
+                            app:drawableStartCompat="@drawable/ic_location_img"
+                            app:drawableTint="@color/colorPrimary"
+                            tools:text="Eixample, Barcelona" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnViewMap"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="0dp"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:text="Ver Mapa"
+                            android:textSize="12sp"
+                            app:cornerRadius="18dp"
+                            app:icon="@drawable/ic_map"
+                            app:iconSize="16dp"
+                            app:iconTint="@color/colorPrimary"
+                            app:strokeColor="@color/colorPrimary" />
+                    </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -314,4 +339,5 @@
             app:srcCompat="@drawable/ic_check_img"
             app:tint="@color/colorSuccess" />
     </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

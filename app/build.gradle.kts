@@ -102,14 +102,17 @@ dependencies {
 
     //viewPager2 para el carrusel de imágenes
     implementation (libs.androidx.viewpager2)
-
     implementation (libs.material.v150)
 
     //BarChart PhilJay
     implementation(libs.mpandroidchart)
-
     implementation("com.google.android.material:material:1.8.0")
 
+    //Google Maps
+    implementation ("com.google.android.gms:play-services-maps:18.2.0")
+    implementation ("com.google.android.gms:play-services-location:21.0.1")
+    //Google Places API for nearby places
+    implementation ("com.google.android.libraries.places:places:3.3.0")
 
 
 }

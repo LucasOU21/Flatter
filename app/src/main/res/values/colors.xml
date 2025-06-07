@@ -36,4 +36,14 @@
     <color name="colorAccept">#4AD991</color> <!-- Update to match colorSuccess -->
     <color name="gray_dark">#696F8C</color> <!-- Update to match text_secondary -->
     <color name="gray_light">#F1F3F9</color> <!-- Update to match colorSurfaceDark -->
+
+    <!-- Map Marker Colors -->
+    <color name="marker_blue">#2196F3</color>      <!-- Metro -->
+    <color name="marker_red">#F44336</color>        <!-- Hospital -->
+    <color name="marker_orange">#FF9800</color>     <!-- School -->
+    <color name="marker_green">#4CAF50</color>      <!-- Supermarket -->
+    <color name="marker_yellow">#FFEB3B</color>     <!-- Restaurant -->
+    <color name="marker_cyan">#00BCD4</color>       <!-- Mall -->
+    <color name="marker_green_dark">#388E3C</color> <!-- Park -->
+    <color name="marker_purple">#9C27B0</color>     <!-- District center -->
 </resources>

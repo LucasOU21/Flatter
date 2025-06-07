@@ -143,4 +143,11 @@
     <string name="publication_success">¡Anuncio publicado con éxito!</string>
     <string name="publication_error">Error al publicar: %1$s</string>
     <string name="min_photos_required">Añade al menos una foto</string>
+
+    <string name="google_maps_key" translatable="false">AIzaSyDuW4yvE0AQtf4nbJT8B27vgh0-aVhpGCs</string>
+
+    <!-- Map related strings -->
+    <string name="view_map">Ver mapa</string>
+    <string name="district_area">Área del barrio</string>
+    <string name="nearby_places">Lugares cercanos</string>
 </resources>

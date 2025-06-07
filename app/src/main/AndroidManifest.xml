@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -12,6 +15,20 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Flatter"
         tools:targetApi="31">
+
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_key" />
+
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
+        <activity
+            android:name=".maps.DistrictMapActivity"
+            android:exported="false"
+            android:label="Ver en el mapa"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
         <activity
             android:name=".chatVista.ConversationActivity"
             android:exported="false"
@@ -19,25 +36,24 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".listingVista.ListingAnalyticsActivity"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
-            android:exported="false" />
-
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
         <activity
             android:name=".listingVista.DeleteListingsActivity"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
         <activity
             android:name=".listingVista.CreateListingActivity"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
         <activity
             android:name=".registerVista.RegisterActivity"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
         <activity
             android:name=".loginVista.LoginActivity"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -46,8 +62,8 @@
         </activity>
         <activity
             android:name=".homeVista.HomeActivity"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
     </application>
 
 </manifest>
