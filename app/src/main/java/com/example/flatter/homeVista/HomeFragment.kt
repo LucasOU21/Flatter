@@ -1,5 +1,6 @@
 package com.example.flatter.homeVista
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -12,6 +13,7 @@ import com.bumptech.glide.Glide
 import com.example.flatter.R
 import com.example.flatter.chatVista.ContactDialog
 import com.example.flatter.databinding.FragmentHomeBinding
+import com.example.flatter.utils.FlatterToast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -19,7 +21,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.NumberFormat
 import java.util.Locale
-import com.example.flatter.utils.FlatterToast
 
 class HomeFragment : Fragment() {
 
@@ -32,6 +33,12 @@ class HomeFragment : Fragment() {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private val TAG = "HomeFragment"
+
+    // Store the last document for pagination
+    private var lastVisibleDocument: com.google.firebase.firestore.DocumentSnapshot? = null
+
+    // Flag to track if we're loading the first page or paginating
+    private var isInitialLoad = true
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -50,6 +57,9 @@ class HomeFragment : Fragment() {
 
         // Configure buttons
         setupButtons()
+
+        // Setup map button
+        setupMapButton()
 
         // Load listings from Firebase
         loadListingsFromFirebase()
@@ -108,6 +118,44 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private fun setupMapButton() {
+        // This will be called when the map button is clicked
+        binding.btnViewMap.setOnClickListener {
+            if (listings.isNotEmpty() && currentListingIndex < listings.size) {
+                val currentListing = listings[currentListingIndex]
+                openDistrictMap(currentListing)
+            } else {
+                FlatterToast.showError(requireContext(), "No hay anuncio disponible")
+            }
+        }
+    }
+
+    private fun openDistrictMap(listing: ListingModel) {
+        try {
+            // Extract district from location (e.g., "Centro, Madrid" -> "Centro")
+            val district = extractDistrictFromLocation(listing.location)
+
+            Log.d(TAG, "Opening map for district: $district from location: ${listing.location}")
+
+            val intent = Intent(requireContext(), com.example.flatter.maps.DistrictMapActivity::class.java)
+            intent.putExtra("DISTRICT_NAME", district)
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error opening map: ${e.message}")
+            FlatterToast.showError(requireContext(), "Error al abrir el mapa: ${e.message}")
+        }
+    }
+
+    private fun extractDistrictFromLocation(location: String): String {
+        // Extract district name from location string
+        // Handles formats like "Centro, Madrid", "Eixample, Barcelona", or just "Centro"
+        return if (location.contains(",")) {
+            location.split(",").firstOrNull()?.trim() ?: "Centro"
+        } else {
+            location.trim().ifEmpty { "Centro" }
+        }
+    }
+
     private fun showContactDialog(listing: ListingModel) {
         val dialog = ContactDialog(
             requireContext(),
@@ -128,12 +176,6 @@ class HomeFragment : Fragment() {
         )
         bottomNavigation.selectedItemId = R.id.navigation_chats
     }
-
-    // Store the last document for pagination
-    private var lastVisibleDocument: com.google.firebase.firestore.DocumentSnapshot? = null
-
-    // Flag to track if we're loading the first page or paginating
-    private var isInitialLoad = true
 
     private fun loadListingsFromFirebase() {
         // Only clear listings if this is the initial load (not pagination)
@@ -267,9 +309,6 @@ class HomeFragment : Fragment() {
                 // Parse documents into ListingModel objects
                 val tempListings = mutableListOf<ListingModel>()
                 var addedCount = 0
-
-                // Create a list to track user data requests
-                val userDataTasks = mutableListOf<kotlinx.coroutines.Deferred<Pair<String, String?>>>()
 
                 lifecycleScope.launch {
                     for (document in documents) {
@@ -665,7 +704,6 @@ class HomeFragment : Fragment() {
             }
         }
     }
-
 
     override fun onDestroyView() {
         super.onDestroyView()
