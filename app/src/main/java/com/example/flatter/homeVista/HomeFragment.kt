@@ -70,11 +70,24 @@ class HomeFragment : Fragment() {
     override fun onResume() {
         super.onResume()
 
-        // Reload listings when returning to this fragment
-        // This ensures we get updated data after deleting chats
         if (isAdded && _binding != null) {
-            isInitialLoad = true
-            loadListingsFromFirebase()
+
+            val shouldReload = when {
+                listings.isEmpty() -> true
+
+                isInitialLoad -> true
+                false -> true // Set to false to prevent automatic reload
+
+                else -> false
+            }
+
+            if (shouldReload) {
+                Log.d(TAG, "onResume: Reloading listings")
+                isInitialLoad = true
+                loadListingsFromFirebase()
+            } else {
+                Log.d(TAG, "onResume: Not reloading listings - preserving current state")
+            }
         }
     }
 
