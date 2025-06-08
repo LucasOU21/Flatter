@@ -33,7 +33,7 @@ class CreateListingActivity : AppCompatActivity() {
     private val db = FirebaseFirestore.getInstance()
     private val storage = FirebaseStorage.getInstance()
 
-    // Launch image picker
+    //image picker
     private val getImages = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
             selectedImages.addAll(uris)
@@ -104,25 +104,25 @@ class CreateListingActivity : AppCompatActivity() {
     private fun validateForm(): Boolean {
         var isValid = true
 
-        // Validate title
+        //validate title
         if (binding.etTitle.text.toString().trim().isEmpty()) {
             binding.etTitle.error = "El título es obligatorio"
             isValid = false
         }
 
-        // Validate price
+        //validate price
         if (binding.etPrice.text.toString().trim().isEmpty()) {
             binding.etPrice.error = "El precio es obligatorio"
             isValid = false
         }
 
-        // Validate description
+        //validate description
         if (binding.etDescription.text.toString().trim().isEmpty()) {
             binding.etDescription.error = "La descripción es obligatoria"
             isValid = false
         }
 
-        // Validate images
+        //validate images
         if (selectedImages.isEmpty()) {
             FlatterToast.showError(this, "Añade al menos una foto")
             isValid = false
@@ -143,9 +143,7 @@ class CreateListingActivity : AppCompatActivity() {
             return
         }
 
-        // Upload images first
         uploadImagesToStorage(userId) { imageUrls ->
-            // Then create the listing document
             createListingInFirestore(userId, imageUrls)
         }
     }
@@ -195,20 +193,20 @@ class CreateListingActivity : AppCompatActivity() {
             binding.radioApartment.isChecked -> "Apartamento"
             binding.radioRoom.isChecked -> "Habitación"
             binding.radioHouse.isChecked -> "Casa"
-            else -> "Apartamento" // Default
+            else -> "Apartamento"
         }
 
-        // Get user info including user type - ALWAYS fetch user type
+        //get user info including user typ
         db.collection("users").document(userId).get()
             .addOnSuccessListener { document ->
                 val userName = document.getString("fullName") ?: "Usuario"
                 val userProfileImageUrl = document.getString("profileImageUrl") ?: ""
-                val userType = document.getString("userType") ?: "propietario" // Get user type with fallback
+                val userType = document.getString("userType") ?: "propietario"
 
-                // Debug log to verify user type retrieval
+                //d log to verify user type retrieval
                 Log.d("CreateListingActivity", "Creating listing for user: $userName with userType: '$userType'")
 
-                // Create listing object
+                //create listing object
                 val listingId = UUID.randomUUID().toString()
                 val formatoFecha = SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES"))
                 val publishedDate = formatoFecha.format(Date())
@@ -228,21 +226,21 @@ class CreateListingActivity : AppCompatActivity() {
                     "userId" to userId,
                     "userName" to userName,
                     "userProfileImageUrl" to userProfileImageUrl,
-                    "userType" to userType, // CRITICAL: Always include user type in listing
+                    "userType" to userType, //Always include user type in listing
                     "publishedDate" to publishedDate,
                     "propertyType" to propertyType,
                     "createdAt" to Date(),
-                    "status" to "active" // Add status for listing management
+                    "status" to "active"
                 )
 
-                // Debug log the complete listing object
+                //debug log the complete listing object
                 Log.d("CreateListingActivity", "Complete listing object: $listing")
 
-                // Save to Firestore
+                //save to Firestore
                 db.collection("listings").document(listingId)
                     .set(listing)
                     .addOnSuccessListener {
-                        // Verify the listing was saved with user type
+                        //verify the listing was saved with user type
                         db.collection("listings").document(listingId).get()
                             .addOnSuccessListener { savedDoc ->
                                 val savedUserType = savedDoc.getString("userType")
@@ -251,7 +249,7 @@ class CreateListingActivity : AppCompatActivity() {
 
                         FlatterToast.showSuccess(this, "¡Anuncio publicado con éxito!")
 
-                        // Return to home activity
+                        //return to home activity
                         val intent = Intent(this, HomeActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
                         startActivity(intent)

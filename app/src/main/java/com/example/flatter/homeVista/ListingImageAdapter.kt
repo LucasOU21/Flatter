@@ -24,7 +24,7 @@ class ListingImageAdapter(private val images: List<String>) :
     override fun onBindViewHolder(holder: ImageViewHolder, position: Int) {
         val imageUrl = images[position]
 
-        // Usar Glide para cargar la imagen desde URL
+        //Usar Glide para cargar la imagen desde URL
         Glide.with(holder.itemView.context)
             .load(imageUrl)
             .centerCrop()

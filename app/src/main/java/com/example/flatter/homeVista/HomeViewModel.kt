@@ -22,19 +22,17 @@ class HomeViewModel : ViewModel() {
     private val _error = MutableLiveData<String>()
     val error: LiveData<String> = _error
 
-    // Este sería tu repositorio en una implementación real
-    // private val listingRepository = ListingRepository()
+    //este sería tu repositorio en una implementación real
+    //private val listingRepository = ListingRepository()
 
     fun cargarListados() {
         _cargando.value = true
 
         viewModelScope.launch {
             try {
-                // En una implementación real, obtendrías los datos desde tu API o Firebase
-                // val result = listingRepository.getListings()
-
-                // Para demo, usamos datos simulados
-                delay(1000) // Simular tiempo de carga
+                //en una implementación real, obtendrías los datos desde tu API o Firebase
+                //val result = listingRepository.getListings()
+                delay(1000)
                 val datosSimulados = generarListadosSimulados()
                 _listados.value = datosSimulados
 
@@ -54,10 +52,9 @@ class HomeViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                // En una implementación real, cargarías más datos desde tu API
-                // val result = listingRepository.getMoreListings(lastId)
+                //En una implementación real, cargarías más datos desde tu API
+                //val result = listingRepository.getMoreListings(lastId)
 
-                // Para demo, añadimos más datos simulados
                 delay(1000) // Simular tiempo de carga
                 val nuevosDatos = generarListadosSimulados(5)
 
@@ -73,20 +70,16 @@ class HomeViewModel : ViewModel() {
     fun aceptarListado(listingId: String) {
         // En una implementación real, guardarías esta preferencia
         // listingRepository.saveLikedListing(listingId)
-
-        // Para demo, solo mostramos un mensaje en el log
         println("Listado aceptado: $listingId")
     }
 
     fun rechazarListado(listingId: String) {
-        // En una implementación real, guardarías esta preferencia
-        // listingRepository.saveDislikedListing(listingId)
-
-        // Para demo, solo mostramos un mensaje en el log
+        //En una implementación real, guardarías esta preferencia
+        //listingRepository.saveDislikedListing(listingId)
         println("Listado rechazado: $listingId")
     }
 
-    // Función para generar datos simulados (solo para demo)
+    //Función para generar datos simulados (solo para demo)
     private fun generarListadosSimulados(cantidad: Int = 10): List<ListingModel> {
         val listados = mutableListOf<ListingModel>()
 
@@ -111,7 +104,7 @@ class HomeViewModel : ViewModel() {
             val cantidadImagenes = (2..5).random()
             val imagenesListado = mutableListOf<String>()
 
-            // URLs de imágenes de ejemplo (reemplazar por tus propias imágenes)
+            //URLs de imágenes de ejemplo (reemplazar por tus propias imágenes)
             for (j in 1..cantidadImagenes) {
                 imagenesListado.add("https://source.unsplash.com/random/800x600/?apartment,room,house,interior&sig=${UUID.randomUUID()}")
             }

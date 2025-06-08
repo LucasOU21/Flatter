@@ -34,10 +34,9 @@ class HomeFragment : Fragment() {
     private val auth = FirebaseAuth.getInstance()
     private val TAG = "HomeFragment"
 
-    // Store the last document for pagination
     private var lastVisibleDocument: com.google.firebase.firestore.DocumentSnapshot? = null
 
-    // Flag to track if we're loading the first page or paginating
+    //flag to track if we're loading the first page
     private var isInitialLoad = true
 
     override fun onCreateView(
@@ -52,16 +51,12 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Add debug log
         Log.d(TAG, "onViewCreated called")
 
-        // Configure buttons
         setupButtons()
 
-        // Setup map button
         setupMapButton()
 
-        // Load listings from Firebase
         loadListingsFromFirebase()
 
         debugUserTypesInFirestore()
@@ -76,7 +71,7 @@ class HomeFragment : Fragment() {
                 listings.isEmpty() -> true
 
                 isInitialLoad -> true
-                false -> true // Set to false to prevent automatic reload
+                false -> true //Set to false to prevent automatic reload
 
                 else -> false
             }
@@ -92,27 +87,27 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupButtons() {
-        // Reject button
+        //Reject button
         binding.btnReject.setOnClickListener {
             if (listings.isNotEmpty() && currentListingIndex < listings.size) {
-                // Move to next listing
+
                 currentListingIndex++
 
                 if (currentListingIndex < listings.size) {
                     displayCurrentListing()
                 } else {
-                    // No more listings, show message
+                    //No more listings, show message
                     showNoMoreListingsMessage()
                 }
             }
         }
 
-        // Accept button
+
         binding.btnAccept.setOnClickListener {
             if (listings.isNotEmpty() && currentListingIndex < listings.size) {
                 val currentListing = listings[currentListingIndex]
 
-                // Check if user is logged in
+
                 if (auth.currentUser == null) {
                     Toast.makeText(
                         requireContext(),
@@ -122,17 +117,14 @@ class HomeFragment : Fragment() {
                     return@setOnClickListener
                 }
 
-                // Save this listing as "liked" in Firestore
                 saveLikedListing(currentListing.id)
 
-                // Show contact dialog
                 showContactDialog(currentListing)
             }
         }
     }
 
     private fun setupMapButton() {
-        // This will be called when the map button is clicked
         binding.btnViewMap.setOnClickListener {
             if (listings.isNotEmpty() && currentListingIndex < listings.size) {
                 val currentListing = listings[currentListingIndex]
@@ -145,7 +137,6 @@ class HomeFragment : Fragment() {
 
     private fun openDistrictMap(listing: ListingModel) {
         try {
-            // Extract district from location (e.g., "Centro, Madrid" -> "Centro")
             val district = extractDistrictFromLocation(listing.location)
 
             Log.d(TAG, "Opening map for district: $district from location: ${listing.location}")
@@ -160,8 +151,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun extractDistrictFromLocation(location: String): String {
-        // Extract district name from location string
-        // Handles formats like "Centro, Madrid", "Eixample, Barcelona", or just "Centro"
+        //handles formats like "Centro, Madrid", "Eixample, Barcelona", or just "Centro"
         return if (location.contains(",")) {
             location.split(",").firstOrNull()?.trim() ?: "Centro"
         } else {
@@ -175,7 +165,6 @@ class HomeFragment : Fragment() {
             listing,
             viewLifecycleOwner.lifecycleScope
         ) {
-            // Instead of regular toast
             FlatterToast.showSuccess(requireContext(), "Redirigiendo a chats...")
             navigateToChatsFragment()
         }
@@ -183,7 +172,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun navigateToChatsFragment() {
-        // Navigate to Chats fragment using Bottom Navigation
+        //navigate to Chats fragment using Bottom Navigation
         val bottomNavigation = requireActivity().findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(
             R.id.bottom_navigation
         )
@@ -191,7 +180,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun loadListingsFromFirebase() {
-        // Only clear listings if this is the initial load (not pagination)
+        //only clear listings if this is the initial load
         if (isInitialLoad) {
             showLoading(true)
             listings.clear()
@@ -199,16 +188,13 @@ class HomeFragment : Fragment() {
             currentListingIndex = 0
         }
 
-        // Get current user ID
         val currentUserId = auth.currentUser?.uid
 
-        // If user is not logged in, load all listings
         if (currentUserId == null) {
             loadAllListings()
             return
         }
 
-        // Load user profile to get max budget
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val userDoc = db.collection("users")
@@ -219,12 +205,12 @@ class HomeFragment : Fragment() {
                 val maxBudget = userDoc.getDouble("maxBudget") ?: 0.0
                 Log.d(TAG, "User max budget: $maxBudget")
 
-                // If maxBudget is 0, load all listings (no budget filtering)
+                //f maxBudget is 0, load all listings (no budget filtering)
                 if (maxBudget <= 0) {
                     Log.d(TAG, "No budget set, loading all listings")
                     loadAllListings()
                 } else {
-                    // Load filtered listings by budget
+                    //Load filtered listings by budget
                     loadFilteredListings(maxBudget)
                 }
             } catch (e: Exception) {
@@ -239,13 +225,9 @@ class HomeFragment : Fragment() {
     }
 
     private fun loadAllListings() {
-        // Build query for listings without any filtering
         val query = db.collection("listings")
-            .limit(20) // Get more listings for better random selection
-
-        // Apply pagination if not initial load
+            .limit(20)
         if (!isInitialLoad && lastVisibleDocument != null) {
-            // Need to create a new query with startAfter
             val paginatedQuery = query.startAfter(lastVisibleDocument!!)
             executeListingsQuery(paginatedQuery)
         } else {
@@ -254,20 +236,14 @@ class HomeFragment : Fragment() {
     }
 
     private fun loadFilteredListings(maxBudget: Double) {
-        // Get current user ID
+        //Get current user ID
         val currentUserId = auth.currentUser?.uid ?: return
 
         try {
-            // IMPORTANT: Firestore only allows one inequality filter per query
-            // We'll fetch listings and do client-side filtering
-
-            // Base query for listings - only include basic filtering that won't cause index errors
             val query = db.collection("listings")
-                .limit(50) // Get more listings since we'll filter some out client-side
+                .limit(50)
 
-            // Apply pagination if not initial load
             if (!isInitialLoad && lastVisibleDocument != null) {
-                // Need to create a new query with startAfter
                 val paginatedQuery = query.startAfter(lastVisibleDocument!!)
                 executeListingsQuery(paginatedQuery, currentUserId, maxBudget)
             } else {
@@ -276,7 +252,6 @@ class HomeFragment : Fragment() {
         } catch (e: Exception) {
             Log.w(TAG, "Error with filtered query: ${e.message}")
 
-            // Load all listings as fallback and filter client-side
             val fallbackQuery = db.collection("listings")
                 .limit(50)
 
@@ -314,12 +289,10 @@ class HomeFragment : Fragment() {
                     return@addOnSuccessListener
                 }
 
-                // Save the last document for pagination
                 if (documents.size() > 0) {
                     lastVisibleDocument = documents.documents[documents.size() - 1]
                 }
 
-                // Parse documents into ListingModel objects
                 val tempListings = mutableListOf<ListingModel>()
                 var addedCount = 0
 
@@ -330,14 +303,12 @@ class HomeFragment : Fragment() {
                             val userId = document.getString("userId") ?: ""
                             val price = document.getDouble("price") ?: 0.0
 
-                            // Manual filtering based on our criteria:
-                            // 1. Skip user's own listings
                             if (currentUserId != null && userId == currentUserId) {
                                 Log.d(TAG, "Skipping own listing: $id")
                                 continue
                             }
 
-                            // 2. Skip if price is above user's max budget (only if maxBudget > 0)
+
                             if (maxBudget > 0 && price > maxBudget) {
                                 Log.d(TAG, "Skipping listing $id because price $price is above budget $maxBudget")
                                 continue
@@ -350,29 +321,24 @@ class HomeFragment : Fragment() {
                             val bathrooms = document.getLong("bathrooms")?.toInt() ?: 1
                             val area = document.getLong("area")?.toInt() ?: 0
 
-                            // Get image URLs
                             val imagesList = document.get("imageUrls") as? List<String> ?: listOf()
 
                             val userName = document.getString("userName") ?: "Usuario"
                             val userProfileImageUrl = document.getString("userProfileImageUrl") ?: ""
                             val publishedDate = document.getString("publishedDate") ?: ""
-
-                            // Try to get user type from listing first, if not available fetch from user document
                             var userType = document.getString("userType")
 
                             if (userType.isNullOrEmpty() && userId.isNotEmpty()) {
-                                // Fetch user type from user document
                                 try {
                                     val userDoc = db.collection("users").document(userId).get().await()
                                     userType = userDoc.getString("userType") ?: "propietario"
                                     Log.d(TAG, "Fetched user type for user $userId: $userType")
                                 } catch (e: Exception) {
                                     Log.e(TAG, "Error fetching user type for user $userId: ${e.message}")
-                                    userType = "propietario" // Default fallback
+                                    userType = "propietario"
                                 }
                             }
 
-                            // Default to "propietario" if still null/empty
                             if (userType.isNullOrEmpty()) {
                                 userType = "propietario"
                             }
@@ -400,40 +366,35 @@ class HomeFragment : Fragment() {
                             addedCount++
                             Log.d(TAG, "Added listing: $id with userType: $userType")
                         } catch (e: Exception) {
-                            // Skip any malformed documents
                             Log.e(TAG, "Error parsing document: ${e.message}")
                             continue
                         }
                     }
 
-                    // Always randomize the order of the listings
+                    //always randomize the order of the listings
                     tempListings.shuffle()
                     Log.d(TAG, "Shuffled the listings for random order")
 
                     if (isInitialLoad) {
-                        // Replace all listings with the new ones if initial load
+
                         listings.clear()
                         listings.addAll(tempListings)
                     } else {
-                        // Add new listings to the existing list if paginating
                         listings.addAll(tempListings)
-                        // Shuffle again to mix old and new listings
                         listings.shuffle()
                         Log.d(TAG, "Reshuffled all listings after pagination")
                     }
 
                     Log.d(TAG, "Processed ${documents.size()} documents, added $addedCount listings. Total listings now: ${listings.size}")
 
-                    // Show the first listing if initial load, or keep current index if paginating
                     if (listings.isNotEmpty()) {
                         if (isInitialLoad) {
                             currentListingIndex = 0
                             displayCurrentListing()
                         } else if (addedCount > 0) {
-                            // Continue showing the current listing
+
                             displayCurrentListing()
                         } else {
-                            // If we didn't add any new listings after filtering
                             Toast.makeText(
                                 requireContext(),
                                 "No hay más anuncios disponibles",
@@ -445,7 +406,6 @@ class HomeFragment : Fragment() {
                         if (isInitialLoad) {
                             showNoListingsMessage()
                         } else {
-                            // If pagination didn't yield any new listings
                             Toast.makeText(
                                 requireContext(),
                                 "No hay más anuncios disponibles",
@@ -453,8 +413,6 @@ class HomeFragment : Fragment() {
                             ).show()
                         }
                     }
-
-                    // Set initialLoad to false after first load
                     isInitialLoad = false
                     showLoading(false)
                 }
@@ -473,7 +431,6 @@ class HomeFragment : Fragment() {
             }
     }
 
-    // Updated displayCurrentListing method in HomeFragment.kt
     private fun displayCurrentListing() {
         if (listings.isEmpty() || currentListingIndex >= listings.size) {
             showNoMoreListingsMessage()
@@ -482,17 +439,15 @@ class HomeFragment : Fragment() {
 
         val listing = listings[currentListingIndex]
 
-        // Show the card
         binding.cardListing.visibility = View.VISIBLE
 
-        // Set text fields
         binding.tvTitle.text = listing.title
         binding.tvLocation.text = listing.location
         binding.tvDescription.text = listing.description
         binding.tvUserName.text = getString(R.string.publicado_por, listing.userName)
         binding.tvPublishedDate.text = getString(R.string.publicado_fecha, listing.publishedDate)
 
-        // Set user type badge with proper validation
+        //set user type badge with proper validation
         val userTypeText = when (listing.userType.lowercase().trim()) {
             "inquilino" -> {
                 Log.d(TAG, "Displaying INQUILINO badge for user: ${listing.userName}")
@@ -510,7 +465,7 @@ class HomeFragment : Fragment() {
 
         binding.tvUserTypeBadge.text = userTypeText
 
-        // Set user type badge background color based on type
+        //set user type badge background color based on type
         val badgeBackground = when (listing.userType.lowercase().trim()) {
             "inquilino" -> {
                 Log.d(TAG, "Setting RENTER badge background")
@@ -526,13 +481,9 @@ class HomeFragment : Fragment() {
             }
         }
         binding.tvUserTypeBadge.setBackgroundResource(badgeBackground)
-
-        // Format price
         val formattedPrice = NumberFormat.getCurrencyInstance(Locale("es", "ES"))
             .format(listing.price)
         binding.tvPrice.text = getString(R.string.precio_por_mes, formattedPrice)
-
-        // Set details
         binding.tvBedrooms.text = resources.getQuantityString(
             R.plurals.bedroom_count,
             listing.bedrooms,
@@ -545,29 +496,27 @@ class HomeFragment : Fragment() {
         )
         binding.tvArea.text = getString(R.string.area_metros, listing.area)
 
-        // Load user profile image
+        //load user profile image
         Glide.with(requireContext())
             .load(listing.userProfileImageUrl)
             .placeholder(R.drawable.default_profile_img)
             .error(R.drawable.default_profile_img)
             .into(binding.ivUserProfile)
 
-        // Setup image carousel
+        //setup image carousel
         setupImageCarousel(listing.imageUrls)
-
-        // Debug log to verify user type is being set correctly
         Log.d(TAG, "Current listing - User: ${listing.userName}, UserType: '${listing.userType}', Badge: $userTypeText")
     }
 
     private fun setupImageCarousel(imageUrls: List<String>) {
-        // Create adapter
+        //create adapter
         listingImageAdapter = ListingImageAdapter(imageUrls)
         binding.viewPagerImages.adapter = listingImageAdapter
 
-        // Setup dots indicator
+        //setup dots indicator
         setupDotsIndicator(imageUrls.size)
 
-        // Handle page changes
+        //handle page changes
         binding.viewPagerImages.registerOnPageChangeCallback(object :
             androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
@@ -580,7 +529,7 @@ class HomeFragment : Fragment() {
     private fun setupDotsIndicator(count: Int) {
         binding.dotsIndicator.removeAllViews()
 
-        // Create indicator dots
+        //create indicator dots
         for (i in 0 until count) {
             val dot = android.widget.ImageView(requireContext())
             dot.setImageResource(
@@ -621,11 +570,11 @@ class HomeFragment : Fragment() {
         db.collection("likes")
             .add(likeData)
             .addOnSuccessListener {
-                // Use custom success toast
+                //use custom success toast
                 FlatterToast.showSuccess(requireContext(), "¡Anuncio guardado!")
             }
             .addOnFailureListener { e ->
-                // Use custom error toast
+                //use custom error toast
                 FlatterToast.showError(requireContext(), "Error al guardar: ${e.message}")
             }
     }
@@ -637,8 +586,6 @@ class HomeFragment : Fragment() {
             getString(R.string.no_listings_available),
             Toast.LENGTH_LONG
         ).show()
-
-        // Optional: fetch more listings
         loadMoreListings()
     }
 
@@ -651,22 +598,20 @@ class HomeFragment : Fragment() {
         ).show()
     }
 
-    // Helper function for loading more listings
+    //helper function for loading more listings
     private fun loadMoreListings() {
-        // If we're already loading, don't trigger another load
+        //if we're already loading, don't trigger another load
         if (binding.progressBar.visibility == View.VISIBLE) {
             return
         }
 
         Toast.makeText(requireContext(), "Buscando más propiedades...", Toast.LENGTH_SHORT).show()
-
-        // Set isInitialLoad to false since we're paginating
         isInitialLoad = false
 
-        // Show loading indicator
+        //show loading indicator
         showLoading(true)
 
-        // Reload listings with pagination
+        //reload listings with pagination
         loadListingsFromFirebase()
     }
 
@@ -679,7 +624,7 @@ class HomeFragment : Fragment() {
     private fun debugUserTypesInFirestore() {
         lifecycleScope.launch {
             try {
-                // Check all users in the database
+                //check all users in the database
                 val usersSnapshot = db.collection("users").get().await()
                 Log.d(TAG, "=== USER TYPE VERIFICATION ===")
 
@@ -691,7 +636,7 @@ class HomeFragment : Fragment() {
                     Log.d(TAG, "User: $userName (ID: $userId) - UserType: '$userType'")
                 }
 
-                // Check all listings in the database
+                //check all listings in the database
                 val listingsSnapshot = db.collection("listings").get().await()
                 Log.d(TAG, "=== LISTING USER TYPE VERIFICATION ===")
 
@@ -704,7 +649,7 @@ class HomeFragment : Fragment() {
 
                     Log.d(TAG, "Listing: $title by $userName (UserID: $userId) - UserType: '$userType'")
 
-                    // If listing doesn't have userType, fetch from user document
+                    //if listing doesn't have userType, fetch from user document
                     if (userType.isNullOrEmpty() && userId.isNotEmpty()) {
                         val userDoc = db.collection("users").document(userId).get().await()
                         val actualUserType = userDoc.getString("userType")

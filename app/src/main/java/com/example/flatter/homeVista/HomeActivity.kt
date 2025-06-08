@@ -20,11 +20,11 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         try {
-            // Initialize ViewBinding
+            //initialize ViewBinding
             binding = ActivityHomeBinding.inflate(layoutInflater)
             setContentView(binding.root)
 
-            // Set up bottom navigation
+            //set up bottom navigation
             binding.bottomNavigation.setOnItemSelectedListener { item ->
                 when (item.itemId) {
                     R.id.navigation_chats -> loadFragment(ChatsFragment())
@@ -33,7 +33,7 @@ class HomeActivity : AppCompatActivity() {
                     R.id.navigation_create -> {
                         // Check if user is logged in
                         if (FirebaseAuth.getInstance().currentUser != null) {
-                            // Load the ListingManagerFragment instead of starting CreateListingActivity
+                            //load the ListingManagerFragment instead of starting CreateListingActivity
                             loadFragment(ListingManagerFragment())
                             true
                         } else {
@@ -45,7 +45,7 @@ class HomeActivity : AppCompatActivity() {
                 }
             }
 
-            // Load default fragment
+            //load default fragment
             if (savedInstanceState == null) {
                 binding.bottomNavigation.selectedItemId = R.id.navigation_home
             }

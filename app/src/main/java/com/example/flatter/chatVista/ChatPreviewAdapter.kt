@@ -38,7 +38,7 @@ class ChatPreviewAdapter(
     override fun onBindViewHolder(holder: ChatViewHolder, position: Int) {
         val chatPreview = getItem(position)
 
-        // Load profile picture
+        //profile picture
         Glide.with(holder.itemView.context)
             .load(chatPreview.otherUserProfilePic)
             .placeholder(R.drawable.default_profile_img)
@@ -46,11 +46,11 @@ class ChatPreviewAdapter(
             .circleCrop()
             .into(holder.ivProfilePic)
 
-        // Set user name with user type and listing title if available
+        //set user name with user type and listing title if available
         val userTypeLabel = when (chatPreview.otherUserType.lowercase()) {
             "inquilino" -> "Inquilino"
             "propietario" -> "Propietario"
-            else -> "Propietario" // Default
+            else -> "Propietario"
         }
 
         val userName = if (chatPreview.listingTitle.isNotEmpty()) {
@@ -60,7 +60,7 @@ class ChatPreviewAdapter(
         }
         holder.tvUserName.text = userName
 
-        // Apply different styles based on chat status
+        //apply different styles based on chat status
         when (chatPreview.status) {
             "pending" -> {
                 holder.tvUserName.setTypeface(null, Typeface.BOLD)
@@ -72,7 +72,7 @@ class ChatPreviewAdapter(
                 holder.itemView.setBackgroundColor(ContextCompat.getColor(holder.itemView.context, R.color.colorSurfaceDark))
             }
             "accepted" -> {
-                // Normal display for accepted chats
+                //normal display for accepted chats
                 holder.tvUserName.setTypeface(null, if (chatPreview.unreadCount > 0) Typeface.BOLD else Typeface.NORMAL)
                 holder.tvLastMessage.text = if (chatPreview.lastMessage.isEmpty()) {
                     "Comienza una conversación"
@@ -94,7 +94,6 @@ class ChatPreviewAdapter(
                 holder.itemView.setBackgroundColor(ContextCompat.getColor(holder.itemView.context, R.color.colorSurfaceDark))
             }
             else -> {
-                // Default display
                 holder.tvUserName.setTypeface(null, Typeface.NORMAL)
                 holder.tvLastMessage.text = if (chatPreview.lastMessage.isEmpty()) {
                     "Comienza una conversación"
@@ -105,7 +104,7 @@ class ChatPreviewAdapter(
             }
         }
 
-        // Format and set timestamp
+        //format and set timestamp
         val formattedDate = if (chatPreview.lastMessageTimestamp.seconds > 0) {
             val date = Date(chatPreview.lastMessageTimestamp.seconds * 1000)
             SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
@@ -114,7 +113,7 @@ class ChatPreviewAdapter(
         }
         holder.tvTimestamp.text = formattedDate
 
-        // Set unread count
+        //set unread count
         if (chatPreview.unreadCount > 0 && chatPreview.status == "accepted") {
             holder.tvUnreadCount.visibility = View.VISIBLE
             holder.tvUnreadCount.text = chatPreview.unreadCount.toString()
@@ -122,7 +121,7 @@ class ChatPreviewAdapter(
             holder.tvUnreadCount.visibility = View.GONE
         }
 
-        // Set click listener
+        //Set click listener
         holder.itemView.setOnClickListener {
             onChatClicked(chatPreview)
         }

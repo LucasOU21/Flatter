@@ -17,11 +17,11 @@ abstract class SwipeToDeleteCallback(context: Context) : ItemTouchHelper.SimpleC
 
     private val deleteIcon: Drawable?
     private val background = ColorDrawable()
-    private val backgroundColor = Color.parseColor("#f44336") // Red color
+    private val backgroundColor = Color.parseColor("#f44336") //Red color
     private val clearPaint = Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR) }
 
     init {
-        // Initialize delete icon
+        //initialize delete icon
         deleteIcon = ContextCompat.getDrawable(context, R.drawable.ic_delete)
     }
 
@@ -30,7 +30,6 @@ abstract class SwipeToDeleteCallback(context: Context) : ItemTouchHelper.SimpleC
         viewHolder: RecyclerView.ViewHolder,
         target: RecyclerView.ViewHolder
     ): Boolean {
-        // We don't want to support moving items, so return false
         return false
     }
 
@@ -53,19 +52,19 @@ abstract class SwipeToDeleteCallback(context: Context) : ItemTouchHelper.SimpleC
             return
         }
 
-        // Draw red background
+        //draw red background
         background.color = backgroundColor
         background.setBounds(itemView.right + dX.toInt(), itemView.top, itemView.right, itemView.bottom)
         background.draw(c)
 
-        // Calculate position of delete icon
+        //calculate position of delete icon
         val iconMargin = (itemHeight - (deleteIcon?.intrinsicHeight ?: 0)) / 2
         val iconTop = itemView.top + iconMargin
         val iconBottom = iconTop + (deleteIcon?.intrinsicHeight ?: 0)
         val iconLeft = itemView.right - iconMargin - (deleteIcon?.intrinsicWidth ?: 0)
         val iconRight = itemView.right - iconMargin
 
-        // Draw delete icon
+        //draw delete icon
         deleteIcon?.setBounds(iconLeft, iconTop, iconRight, iconBottom)
         deleteIcon?.draw(c)
 

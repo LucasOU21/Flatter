@@ -352,33 +352,23 @@ class DistrictMapActivity : AppCompatActivity(), OnMapReadyCallback {
             searchPlacesAtLocation(latLng)
         }
 
-        // Find and highlight the district
+        // Find district coordinates
         val districtCoordinates = madridDistricts[districtName] ?: madridDistricts["Centro"]!!
 
-        // Move camera to district
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(districtCoordinates, 13f))
+        // Move camera to district - higher zoom level to focus on the area
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(districtCoordinates, 15f))
 
-        // Add district boundary
-        addDistrictBoundary(districtCoordinates)
+        // REMOVED: District boundary circle - this was the purple circle
 
-        // Set initial search center to district center
+        // Set initial search center to district center and show search radius
         currentSearchCenter = districtCoordinates
         updateRadiusCircle()
 
-        // Show instruction
-        FlatterToast.showLong(this, "Toca el mapa para buscar lugares cercanos. Usa los controles para mostrar/ocultar categorías.")
-    }
+        // Automatically load places in the initial radius
+        searchPlacesAtLocation(districtCoordinates)
 
-    private fun addDistrictBoundary(center: LatLng) {
-        // Add a light boundary for the district
-        map.addCircle(
-            CircleOptions()
-                .center(center)
-                .radius(2500.0) // 2.5km radius for district
-                .strokeColor(Color.argb(50, 108, 99, 255))
-                .fillColor(Color.argb(10, 108, 99, 255))
-                .strokeWidth(2f)
-        )
+        // Show instruction
+        FlatterToast.showLong(this, "Toca el mapa para cambiar el área de búsqueda. Usa los controles para mostrar/ocultar categorías.")
     }
 
     private fun updateRadiusCircle() {
@@ -387,7 +377,7 @@ class DistrictMapActivity : AppCompatActivity(), OnMapReadyCallback {
             radiusCircle?.remove()
             centerMarker?.remove()
 
-            // Add new radius circle
+            // Add new radius circle - ONLY the red search radius
             radiusCircle = map.addCircle(
                 CircleOptions()
                     .center(center)
@@ -421,7 +411,7 @@ class DistrictMapActivity : AppCompatActivity(), OnMapReadyCallback {
         if (placesApiAvailable) {
             loadNearbyPlacesFromAPI(location)
         } else {
-            loadFallbackPlaces(location)
+            loadFallbackPlacesInRadius(location) // Use the corrected method that respects radius
         }
     }
 
@@ -434,7 +424,7 @@ class DistrictMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun loadNearbyPlacesFromAPI(center: LatLng) {
         if (placesClient == null) {
-            loadFallbackPlaces(center)
+            loadFallbackPlacesInRadius(center) // Use radius-aware fallback
             return
         }
 
@@ -489,68 +479,18 @@ class DistrictMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
             if (!apiWorked) {
                 Log.d("DistrictMapActivity", "Falling back to comprehensive example data")
-                loadFallbackPlaces(center)
+                loadFallbackPlacesInRadius(center) // Use radius-aware fallback
             }
 
             binding.progressBar.visibility = View.GONE
         }
     }
 
-    // FIXED: Added the missing loadFallbackPlaces method
-    private fun loadFallbackPlaces(center: LatLng) {
-        binding.progressBar.visibility = View.VISIBLE
-
-        Log.d("DistrictMapActivity", "Loading fallback places for ${districtName}")
-
-        // Get fallback data for this district, or use Centro as default
-        val districtPlaces = fallbackPlaces[districtName] ?: fallbackPlaces["Centro"] ?: emptyMap()
-
-        val colorMap = mapOf(
-            "Metro" to BitmapDescriptorFactory.HUE_BLUE,
-            "Renfe" to BitmapDescriptorFactory.HUE_VIOLET,
-            "Hospital" to BitmapDescriptorFactory.HUE_RED,
-            "Escuela" to BitmapDescriptorFactory.HUE_ORANGE,
-            "Universidad" to BitmapDescriptorFactory.HUE_MAGENTA,
-            "Supermercado" to BitmapDescriptorFactory.HUE_GREEN,
-            "Restaurante" to BitmapDescriptorFactory.HUE_AZURE,
-            "Centro Comercial" to BitmapDescriptorFactory.HUE_CYAN,
-            "Parque" to BitmapDescriptorFactory.HUE_GREEN
-        )
-
-        for ((typeName, places) in districtPlaces) {
-            val markerColor = colorMap[typeName] ?: BitmapDescriptorFactory.HUE_RED
-
-            // Initialize marker list for this type if not exists
-            if (!markersByType.containsKey(typeName)) {
-                markersByType[typeName] = mutableListOf()
-            }
-
-            for ((placeName, location, description) in places) {
-                val marker = map.addMarker(
-                    MarkerOptions()
-                        .position(location)
-                        .title(placeName)
-                        .snippet("$typeName - $description")
-                        .icon(BitmapDescriptorFactory.defaultMarker(markerColor))
-                )
-                marker?.let {
-                    markersByType[typeName]?.add(it)
-                    it.isVisible = typeVisibility[typeName] ?: false
-                    Log.d("DistrictMapActivity", "Added fallback marker for $typeName: $placeName")
-                }
-            }
-        }
-
-        binding.progressBar.visibility = View.GONE
-
-        // Show message that we're using fallback data
-        FlatterToast.showShort(this, "Mostrando lugares de ejemplo para $districtName")
-    }
-
+    // FIXED: This method now properly filters places within the radius
     private fun loadFallbackPlacesInRadius(center: LatLng) {
         binding.progressBar.visibility = View.VISIBLE
 
-        Log.d("DistrictMapActivity", "Loading fallback places around ${center.latitude}, ${center.longitude}")
+        Log.d("DistrictMapActivity", "Loading fallback places around ${center.latitude}, ${center.longitude} with radius ${currentRadius}m")
 
         val colorMap = mapOf(
             "Metro" to BitmapDescriptorFactory.HUE_BLUE,
@@ -564,39 +504,43 @@ class DistrictMapActivity : AppCompatActivity(), OnMapReadyCallback {
             "Parque" to BitmapDescriptorFactory.HUE_GREEN
         )
 
-        // Use fallback data for the closest district
-        val closestDistrict = findClosestDistrict(center)
-        val districtPlaces = fallbackPlaces[closestDistrict] ?: fallbackPlaces["Centro"] ?: emptyMap()
+        // Use ALL fallback data from all districts to find places within radius
+        var totalPlacesAdded = 0
 
-        for ((typeName, places) in districtPlaces) {
-            val markerColor = colorMap[typeName] ?: BitmapDescriptorFactory.HUE_RED
+        for ((districtName, districtPlaces) in fallbackPlaces) {
+            for ((typeName, places) in districtPlaces) {
+                val markerColor = colorMap[typeName] ?: BitmapDescriptorFactory.HUE_RED
 
-            // Initialize marker list for this type if not exists
-            if (!markersByType.containsKey(typeName)) {
-                markersByType[typeName] = mutableListOf()
-            }
+                // Initialize marker list for this type if not exists
+                if (!markersByType.containsKey(typeName)) {
+                    markersByType[typeName] = mutableListOf()
+                }
 
-            for ((placeName, location, description) in places) {
-                val distance = calculateDistance(center, location)
-                if (distance <= currentRadius) {
-                    val marker = map.addMarker(
-                        MarkerOptions()
-                            .position(location)
-                            .title(placeName)
-                            .snippet("$typeName - $description (${String.format("%.0f", distance)}m)")
-                            .icon(BitmapDescriptorFactory.defaultMarker(markerColor))
-                    )
-                    marker?.let {
-                        markersByType[typeName]?.add(it)
-                        it.isVisible = typeVisibility[typeName] ?: false
-                        Log.d("DistrictMapActivity", "Added fallback marker for $typeName: $placeName")
+                for ((placeName, location, description) in places) {
+                    val distance = calculateDistance(center, location)
+                    // CRITICAL: Only add places within the current radius
+                    if (distance <= currentRadius) {
+                        val marker = map.addMarker(
+                            MarkerOptions()
+                                .position(location)
+                                .title(placeName)
+                                .snippet("$typeName - $description (${String.format("%.0f", distance)}m)")
+                                .icon(BitmapDescriptorFactory.defaultMarker(markerColor))
+                        )
+                        marker?.let {
+                            markersByType[typeName]?.add(it)
+                            it.isVisible = typeVisibility[typeName] ?: false
+                            totalPlacesAdded++
+                            Log.d("DistrictMapActivity", "Added fallback marker for $typeName: $placeName at ${String.format("%.0f", distance)}m from center")
+                        }
                     }
                 }
             }
         }
 
         binding.progressBar.visibility = View.GONE
-        FlatterToast.showShort(this, "Lugares de ejemplo cargados para ${String.format("%.1f", currentRadius/1000.0)}km")
+        Log.d("DistrictMapActivity", "Total places added within ${String.format("%.1f", currentRadius/1000.0)}km radius: $totalPlacesAdded")
+        FlatterToast.showShort(this, "Cargados $totalPlacesAdded lugares en radio de ${String.format("%.1f", currentRadius/1000.0)}km")
     }
 
     private fun findClosestDistrict(location: LatLng): String {
@@ -663,6 +607,7 @@ class DistrictMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
                             place.latLng?.let { location ->
                                 val distance = calculateDistance(center, location)
+                                // CRITICAL: Only add places within the current radius
                                 if (distance <= currentRadius) {
                                     // Check if we already have this place (avoid duplicates)
                                     val existingMarker = markersByType[typeName]?.find { marker ->
@@ -696,7 +641,7 @@ class DistrictMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
             }
 
-            Log.d("DistrictMapActivity", "Loaded $totalPlacesFound places for $typeName")
+            Log.d("DistrictMapActivity", "Loaded $totalPlacesFound places for $typeName within ${String.format("%.1f", currentRadius/1000.0)}km")
 
         } catch (e: Exception) {
             Log.e("DistrictMapActivity", "Enhanced search failed for $typeName: ${e.message}")

@@ -40,15 +40,15 @@ class ChatsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialize chat service
+        //initialize chat service
         chatService = ChatService()
 
-        // Set up RecyclerView
+        //set up RecyclerView
         setupRecyclerView()
 
         Log.d("ChatDebug", "Current user ID: ${FirebaseAuth.getInstance().currentUser?.uid ?: "Not logged in"}")
 
-        // Check if user is logged in, if not, show message
+        //check if user is logged in, if not, show message
         if (FirebaseAuth.getInstance().currentUser == null) {
             binding.tvNoChats.text = "Por favor, inicia sesión para ver tus chats"
             binding.tvNoChats.visibility = View.VISIBLE
@@ -56,7 +56,7 @@ class ChatsFragment : Fragment() {
             return
         }
 
-        // Subscribe to chat updates
+        //subscribe to chat updates
         chatService.getUserChatsFlow().onEach { chatsList ->
             if (chatsList.isEmpty()) {
                 binding.tvNoChats.visibility = View.VISIBLE
@@ -65,7 +65,7 @@ class ChatsFragment : Fragment() {
                 binding.tvNoChats.visibility = View.GONE
                 binding.rvChats.visibility = View.VISIBLE
 
-                // Format chat previews to show status and display accordingly
+                //format chat previews to show status and display accordingly
                 val formattedChats = formatChatsForDisplay(chatsList)
                 chatAdapter.submitList(formattedChats)
             }
@@ -73,30 +73,30 @@ class ChatsFragment : Fragment() {
     }
 
     private fun formatChatsForDisplay(chatsList: List<ChatPreview>): List<ChatPreview> {
-        // This function could format or filter chats based on status
-        // For now, we'll just return all chats, but we could filter out declined ones, etc.
+        //this function could format or filter chats based on status
+        // for now, we'll just return all chats, but we could filter out declined ones
         return chatsList
     }
 
     private fun setupRecyclerView() {
         chatAdapter = ChatPreviewAdapter { chatPreview ->
-            // Handle chat click differently based on status
+            //handle chat click differently based on status
             when (chatPreview.status) {
                 "pending" -> {
-                    // For pending chats, ask if they want to continue or cancel
+                    //for pending chats, ask if they want to continue or cancel
                     if (isChatInitiator(chatPreview)) {
                         showPendingChatOptions(chatPreview)
                     } else {
-                        // If we're the listing owner, open chat normally
+                        //if we're the listing owner, open chat normally
                         openConversation(chatPreview)
                     }
                 }
                 "accepted" -> {
-                    // For accepted chats, open conversation directly
+                    //for accepted chats, open conversation directly
                     openConversation(chatPreview)
                 }
                 "declined", "cancelled" -> {
-                    // For declined or cancelled chats, show status and option to delete
+                    //for declined or cancelled chats, show status and option to delete
                     showDeclinedChatOptions(chatPreview)
                 }
                 else -> openConversation(chatPreview)
@@ -108,13 +108,11 @@ class ChatsFragment : Fragment() {
             adapter = chatAdapter
         }
 
-        // Set up swipe to delete
         setupSwipeToDelete()
     }
 
     private fun isChatInitiator(chatPreview: ChatPreview): Boolean {
-        // If there's no lastMessage, then the current user is likely the initiator
-        // This is a simple heuristic that might need refinement based on your app's logic
+        // If theres no lastMessage, then the current user is likely the initiator
         return chatPreview.lastMessage.isEmpty()
     }
 
@@ -151,16 +149,16 @@ class ChatsFragment : Fragment() {
     }
 
     private fun openConversation(chatPreview: ChatPreview) {
-        // Open conversation activity when a chat is clicked
+        //Open conversation activity when a chat is clicked
         val intent = Intent(requireContext(), ConversationActivity::class.java).apply {
             putExtra("CHAT_ID", chatPreview.chatId)
             putExtra("OTHER_USER_NAME", chatPreview.otherUserName)
             putExtra("OTHER_USER_ID", chatPreview.otherUserId)
             putExtra("OTHER_USER_PROFILE_PIC", chatPreview.otherUserProfilePic)
-            putExtra("OTHER_USER_TYPE", chatPreview.otherUserType) // Pass user type
+            putExtra("OTHER_USER_TYPE", chatPreview.otherUserType)
             putExtra("IS_NEW_CHAT", chatPreview.lastMessage.isEmpty())
 
-            // Add listing-related extras
+            //Add listing-related extras
             putExtra("LISTING_ID", chatPreview.listingId)
             putExtra("LISTING_TITLE", chatPreview.listingTitle)
         }
@@ -173,7 +171,7 @@ class ChatsFragment : Fragment() {
                 val position = viewHolder.absoluteAdapterPosition
                 val chatToRemove = chatAdapter.currentList[position]
 
-                // Ask for confirmation before removing
+                //ask for confirmation before removing
                 AlertDialog.Builder(requireContext())
                     .setTitle("Eliminar chat")
                     .setMessage("¿Estás seguro que quieres eliminar este chat?")
@@ -181,7 +179,7 @@ class ChatsFragment : Fragment() {
                         removeChat(chatToRemove.chatId)
                     }
                     .setNegativeButton("Cancelar") { _, _ ->
-                        // Cancel swipe action by refreshing the adapter
+                        //cancel swipe action by refreshing the adapter
                         chatAdapter.notifyItemChanged(position)
                     }
                     .show()

@@ -21,16 +21,16 @@ class DeleteListingsActivity : AppCompatActivity() {
         binding = ActivityDeleteListingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Set up toolbar
+        //set up toolbar
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Eliminar anuncios"
         binding.toolbar.setNavigationOnClickListener { onBackPressed() }
 
-        // Set up RecyclerView
+        //set up RecyclerView
         binding.recyclerViewListings.layoutManager = LinearLayoutManager(this)
 
-        // Load user's listings
+        //load user's listings
         loadUserListings()
     }
 
@@ -62,7 +62,7 @@ class DeleteListingsActivity : AppCompatActivity() {
                     }
                 }
 
-                // Set up adapter
+                //set up adapter
                 val adapter = DeleteListingsAdapter(
                     listings,
                     onDeleteClick = { listingId ->
@@ -101,13 +101,13 @@ class DeleteListingsActivity : AppCompatActivity() {
             .delete()
             .addOnSuccessListener {
                 binding.progressBar.visibility = View.GONE
-                // Show success message
+                //show success message
                 AlertDialog.Builder(this)
                     .setTitle("Anuncio eliminado")
                     .setMessage("El anuncio ha sido eliminado correctamente.")
                     .setPositiveButton("Aceptar") { dialog, _ ->
                         dialog.dismiss()
-                        // Reload the listings to reflect the change
+                        //  the listings to reflect the change
                         loadUserListings()
                     }
                     .show()

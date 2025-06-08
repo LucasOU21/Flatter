@@ -30,39 +30,39 @@ class ContactDialog(
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Remove default dialog title
+        //remove default dialog title
         requestWindowFeature(Window.FEATURE_NO_TITLE)
 
-        // Use the automatically generated binding class
+        //use the automatically generated binding class
         binding = DialogContactBinding.inflate(LayoutInflater.from(context))
         setContentView(binding.root)
 
-        // Set dialog width to match parent
+        //set dialog width to match parent
         window?.setLayout(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT
         )
 
-        // Setup UI with listing data
+        //setup UI with listing data
         setupUI()
 
-        // Setup listeners
+        //setup listeners
         setupListeners()
     }
 
     private fun setupUI() {
-        // Set listing title
+        //set listing title
         binding.tvListingTitle.text = listing.title
 
-        // Format and set price
+        //format and set price
         val formattedPrice = NumberFormat.getCurrencyInstance(Locale("es", "ES"))
             .format(listing.price)
         binding.tvListingPrice.text = context.getString(R.string.precio_por_mes, formattedPrice)
 
-        // Set owner name
+        //set owner name
         binding.tvOwnerName.text = listing.userName
 
-        // Load owner profile image
+        //load owner profile image
         Glide.with(context)
             .load(listing.userProfileImageUrl)
             .placeholder(R.drawable.default_profile_img)
@@ -71,7 +71,7 @@ class ContactDialog(
     }
 
     private fun setupListeners() {
-        // Send button click
+        //send button click
         binding.btnSend.setOnClickListener {
             val message = binding.etMessage.text.toString().trim()
             if (message.isNotEmpty()) {
@@ -81,17 +81,17 @@ class ContactDialog(
             }
         }
 
-        // Quick message 1
+        //quick message
         binding.tvQuickMessage1.setOnClickListener {
             sendMessage(binding.tvQuickMessage1.text.toString())
         }
 
-        // Quick message 2
+
         binding.tvQuickMessage2.setOnClickListener {
             sendMessage(binding.tvQuickMessage2.text.toString())
         }
 
-        // Quick message 3
+
         binding.tvQuickMessage3.setOnClickListener {
             sendMessage(binding.tvQuickMessage3.text.toString())
         }
@@ -103,29 +103,29 @@ class ContactDialog(
             return
         }
 
-        dismiss() // Close dialog
+        dismiss() //dialog close
 
-        // Show loading message
+
         FlatterToast.showShort(context, "Enviando mensaje...")
 
-        // Start chat with listing owner
+        //start chat with listing owner
         lifecycleScope.launch {
             try {
-                // Create or get chat with listing information
+                //create or get chat with listing information
                 val chatId = chatService.getOrCreateChat(
                     otherUserId = listing.userId,
                     listingId = listing.id,
                     listingTitle = listing.title
                 )
 
-                // Send the message
+                //send the message
                 val success = chatService.sendMessage(chatId, messageText)
 
                 if (success) {
-                    // Show success message
+                    //show success message
                     FlatterToast.showSuccess(context, "Mensaje enviado con éxito")
 
-                    // Open conversation immediately
+                    //open conversation immediately
                     val intent = Intent(context, ConversationActivity::class.java).apply {
                         putExtra("CHAT_ID", chatId)
                         putExtra("OTHER_USER_NAME", listing.userName)
@@ -137,7 +137,7 @@ class ContactDialog(
                     }
                     context.startActivity(intent)
 
-                    // Navigate to chats fragment
+                    //navigate to chats fragment
                     onMessageSent()
                 } else {
                     FlatterToast.showError(context, "Error al enviar mensaje. Inténtalo de nuevo.")

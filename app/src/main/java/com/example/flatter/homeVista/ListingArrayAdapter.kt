@@ -23,7 +23,7 @@ class ListingArrayAdapter(
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         val listing = getItem(position) ?: return View(context)
 
-        // Usar ViewBinding para mejorar el rendimiento y evitar findViewById
+        //Usar ViewBinding para mejorar el rendimiento y evitar findViewById
         val binding: ItemListingBinding
         val view: View
 
@@ -36,19 +36,18 @@ class ListingArrayAdapter(
             binding = view.tag as ItemListingBinding
         }
 
-        // Configurar textos del listado
+        //Configurar textos del listado
         binding.tvTitle.text = listing.title
         binding.tvLocation.text = listing.location
         binding.tvDescription.text = listing.description
         binding.tvUserName.text = context.getString(R.string.publicado_por, listing.userName)
         binding.tvPublishedDate.text = context.getString(R.string.publicado_fecha, listing.publishedDate)
 
-        // Formatear precio con moneda
+        //Formatear precio con moneda
         val formattedPrice = NumberFormat.getCurrencyInstance(Locale("es", "ES"))
             .format(listing.price)
         binding.tvPrice.text = context.getString(R.string.precio_por_mes, formattedPrice)
 
-        // Configurar detalles
         binding.tvBedrooms.text = context.resources.getQuantityString(
             R.plurals.bedroom_count,
             listing.bedrooms,
@@ -61,28 +60,24 @@ class ListingArrayAdapter(
         )
         binding.tvArea.text = context.getString(R.string.area_metros, listing.area)
 
-        // Cargar imagen de perfil del usuario
         Glide.with(context)
             .load(listing.userProfileImageUrl)
             .placeholder(R.drawable.default_profile_img)
             .error(R.drawable.default_profile_img)
             .into(binding.ivUserProfile)
 
-        // Configurar carrusel de imágenes
         setupImageCarousel(listing.imageUrls, binding)
 
         return view
     }
 
     private fun setupImageCarousel(imageUrls: List<String>, binding: ItemListingBinding) {
-        // Configurar adaptador de imágenes
+        //Configurar adaptador de imágenes
         val imageAdapter = ListingImageAdapter(imageUrls)
         binding.viewPagerImages.adapter = imageAdapter
 
-        // Configurar indicador de puntos
         setupDotsIndicator(imageUrls.size, binding)
 
-        // Manejar cambios de página
         binding.viewPagerImages.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
@@ -94,7 +89,6 @@ class ListingArrayAdapter(
     private fun setupDotsIndicator(count: Int, binding: ItemListingBinding) {
         binding.dotsIndicator.removeAllViews()
 
-        // Crear puntos indicadores
         val dots = Array(count) { ImageView(context) }
 
         for (i in dots.indices) {

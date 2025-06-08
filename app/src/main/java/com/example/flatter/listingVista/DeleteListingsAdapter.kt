@@ -29,17 +29,13 @@ class DeleteListingsAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val listing = listings[position]
-
-        // Set title
         holder.tvTitle.text = listing.title
 
-        // Load image
+        //load
         Glide.with(holder.ivListingImage.context)
             .load(listing.imageUrl)
             .placeholder(R.drawable.placeholder_img2)
             .into(holder.ivListingImage)
-
-        // Set delete button click listener
         holder.btnDelete.setOnClickListener {
             onDeleteClick(listing.id)
         }
